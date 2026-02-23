@@ -1,0 +1,10 @@
+{
+  "planPath": "docs/plans/2026-02-23-brush-texture.md",
+  "tasks": [
+    {"id": 7, "subject": "Task 7: Implement BrushDescriptor data model", "status": "completed"},
+    {"id": 8, "subject": "Task 8: Update renderer for BrushDescriptor", "status": "completed", "blockedBy": []},
+    {"id": 9, "subject": "Task 9: Update left panel UI (ToolsView)", "status": "completed", "blockedBy": []},
+    {"id": 10, "subject": "Task 10: Build BrushBuilderView", "status": "completed", "blockedBy": []}
+  ],
+  "lastUpdated": "2026-02-23T12:00:00Z"
+}

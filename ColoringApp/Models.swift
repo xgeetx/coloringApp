@@ -1,0 +1,296 @@
+import SwiftUI
+
+// MARK: - Crayola 16 Colors
+
+struct CrayolaColor: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    let color: Color
+
+    static let palette: [CrayolaColor] = [
+        CrayolaColor(name: "Red",          color: Color(r: 238, g: 32,  b: 77)),
+        CrayolaColor(name: "Red-Orange",   color: Color(r: 255, g: 83,  b: 73)),
+        CrayolaColor(name: "Orange",       color: Color(r: 255, g: 117, b: 56)),
+        CrayolaColor(name: "Yellow-Orange",color: Color(r: 255, g: 174, b: 66)),
+        CrayolaColor(name: "Yellow",       color: Color(r: 252, g: 232, b: 131)),
+        CrayolaColor(name: "Yellow-Green", color: Color(r: 197, g: 227, b: 132)),
+        CrayolaColor(name: "Green",        color: Color(r: 28,  g: 172, b: 120)),
+        CrayolaColor(name: "Blue-Green",   color: Color(r: 25,  g: 158, b: 189)),
+        CrayolaColor(name: "Blue",         color: Color(r: 31,  g: 117, b: 254)),
+        CrayolaColor(name: "Blue-Violet",  color: Color(r: 115, g: 102, b: 189)),
+        CrayolaColor(name: "Violet",       color: Color(r: 146, g: 110, b: 174)),
+        CrayolaColor(name: "Red-Violet",   color: Color(r: 192, g: 68,  b: 143)),
+        CrayolaColor(name: "Pink",         color: Color(r: 255, g: 170, b: 204)),
+        CrayolaColor(name: "Brown",        color: Color(r: 180, g: 103, b: 77)),
+        CrayolaColor(name: "Black",        color: Color(r: 35,  g: 35,  b: 35)),
+        CrayolaColor(name: "White",        color: Color(r: 255, g: 254, b: 245)),
+    ]
+}
+
+// MARK: - Brush Descriptor System
+
+enum BrushBaseStyle: String, Codable, CaseIterable {
+    case crayon, marker, chalk, patternStamp
+
+    var icon: String {
+        switch self {
+        case .crayon:       return "🖍️"
+        case .marker:       return "🖊️"
+        case .chalk:        return "🩫"
+        case .patternStamp: return "🔵"
+        }
+    }
+}
+
+enum PatternShape: String, Codable, CaseIterable {
+    case star, heart, dot, circle, square, diamond, flower, triangle
+
+    var icon: String {
+        switch self {
+        case .star:     return "⭐"
+        case .heart:    return "❤️"
+        case .dot:      return "•"
+        case .circle:   return "⭕"
+        case .square:   return "■"
+        case .diamond:  return "◆"
+        case .flower:   return "🌸"
+        case .triangle: return "▲"
+        }
+    }
+
+    var displayName: String { rawValue.capitalized }
+}
+
+struct BrushDescriptor: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var icon: String
+    var baseStyle: BrushBaseStyle
+    var patternShape: PatternShape?
+    var stampSpacing: CGFloat        // multiplier of brushSize; range 0.5–3.0
+    var sizeVariation: CGFloat       // 0.0 (uniform) → 1.0 (wild)
+    var isSystem: Bool               // system brushes cannot be deleted from the pool
+
+    // Fixed-UUID system brushes so slot UUIDs survive app restarts
+    static let systemBrushes: [BrushDescriptor] = [
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000001")!,
+                        name: "Crayon",   icon: "🖍️", baseStyle: .crayon,
+                        patternShape: nil, stampSpacing: 1.0, sizeVariation: 0.0, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000002")!,
+                        name: "Marker",   icon: "🖊️", baseStyle: .marker,
+                        patternShape: nil, stampSpacing: 1.0, sizeVariation: 0.0, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000003")!,
+                        name: "Sparkle",  icon: "✨", baseStyle: .patternStamp,
+                        patternShape: .star, stampSpacing: 1.2, sizeVariation: 0.0, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000004")!,
+                        name: "Chalk",    icon: "🩫", baseStyle: .chalk,
+                        patternShape: nil, stampSpacing: 1.0, sizeVariation: 0.0, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000005")!,
+                        name: "Hearts",   icon: "❤️", baseStyle: .patternStamp,
+                        patternShape: .heart, stampSpacing: 1.3, sizeVariation: 0.25, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000006")!,
+                        name: "Dots",     icon: "•",  baseStyle: .patternStamp,
+                        patternShape: .dot, stampSpacing: 0.9, sizeVariation: 0.0, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000007")!,
+                        name: "Flowers",  icon: "🌸", baseStyle: .patternStamp,
+                        patternShape: .flower, stampSpacing: 1.4, sizeVariation: 0.2, isSystem: true),
+        BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000008")!,
+                        name: "Confetti", icon: "🎊", baseStyle: .patternStamp,
+                        patternShape: .square, stampSpacing: 0.8, sizeVariation: 0.6, isSystem: true),
+    ]
+
+    // Used internally for eraser — never enters the pool
+    static let eraser = BrushDescriptor(
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!,
+        name: "Eraser", icon: "⬜", baseStyle: .marker,
+        patternShape: nil, stampSpacing: 1.0, sizeVariation: 0.0, isSystem: true
+    )
+}
+
+// MARK: - Drawing Data
+
+struct StrokePoint {
+    let location: CGPoint
+}
+
+struct Stroke: Identifiable {
+    let id = UUID()
+    var points: [StrokePoint]
+    let color: Color
+    let brushSize: CGFloat
+    let brush: BrushDescriptor          // was: brushType: BrushType
+}
+
+struct StampPlacement: Identifiable {
+    let id = UUID()
+    let emoji: String
+    let location: CGPoint
+    let size: CGFloat
+}
+
+// MARK: - Stamp Categories
+
+struct StampCategory: Identifiable {
+    let id = UUID()
+    let name: String
+    let icon: String
+    let stamps: [String]
+}
+
+let allStampCategories: [StampCategory] = [
+    StampCategory(name: "Animals", icon: "🐾", stamps: [
+        "🐶","🐱","🐰","🦊","🐻","🐼","🐨","🐯",
+        "🦁","🐮","🐷","🐸","🐵","🐔","🐧","🦆",
+        "🐘","🦒","🦓","🦬","🐬","🐠","🦀","🐢"
+    ]),
+    StampCategory(name: "Insects", icon: "🦋", stamps: [
+        "🦋","🐛","🐜","🐝","🪲","🐞","🦗","🕷️",
+        "🪳","🦟","🪰","🪱","🦂","🐌","🦎","🐡"
+    ]),
+    StampCategory(name: "Plants", icon: "🌸", stamps: [
+        "🌸","🌺","🌻","🌹","🌷","🌳","🌲","🌴",
+        "🌵","🍀","🍁","🍃","🌿","🌱","🌾","🎋"
+    ]),
+    StampCategory(name: "Fun", icon: "⭐", stamps: [
+        "⭐","🌈","☀️","🌙","❤️","🎈","🎀","🎁",
+        "🏠","🚂","🚀","🦄","🍦","🍭","🎪","🎠"
+    ]),
+]
+
+// MARK: - Drawing State (ObservableObject)
+
+class DrawingState: ObservableObject {
+    // Active settings
+    @Published var selectedColor: Color  = CrayolaColor.palette[0].color
+    @Published var backgroundColor: Color = Color(r: 255, g: 250, b: 235)
+    @Published var brushSize: CGFloat   = 24
+    @Published var selectedBrush: BrushDescriptor = BrushDescriptor.systemBrushes[0]
+    @Published var isEraserMode: Bool   = false
+    @Published var selectedStamp: String = "🦋"
+    @Published var isStampMode: Bool    = false
+
+    // Brush pool & quick-access slots
+    @Published var brushPool: [BrushDescriptor] = []
+    @Published var slotAssignments: [UUID?] = [nil, nil, nil]
+
+    // Drawing data
+    @Published var strokes: [Stroke] = []
+    @Published var stamps: [StampPlacement] = []
+    @Published var currentStroke: Stroke? = nil
+
+    // Undo stacks
+    private var strokeHistory: [[Stroke]] = []
+    private var stampHistory: [[StampPlacement]] = []
+
+    init() {
+        loadFromUserDefaults()
+    }
+
+    // MARK: - Pool Management
+
+    func addBrush(_ brush: BrushDescriptor) {
+        brushPool.append(brush)
+        persist()
+    }
+
+    func deleteBrush(id: UUID) {
+        brushPool.removeAll { $0.id == id && !$0.isSystem }
+        slotAssignments = slotAssignments.map { $0 == id ? nil : $0 }
+        persist()
+    }
+
+    func assignBrush(id: UUID, toSlot slot: Int) {
+        guard slot >= 0 && slot < 3 else { return }
+        slotAssignments[slot] = id
+        persist()
+    }
+
+    // MARK: - Stroke Actions
+
+    func beginStroke(at point: CGPoint) {
+        let brush = isEraserMode ? BrushDescriptor.eraser : selectedBrush
+        let color = isEraserMode ? backgroundColor : selectedColor
+        currentStroke = Stroke(
+            points: [StrokePoint(location: point)],
+            color: color,
+            brushSize: brushSize,
+            brush: brush
+        )
+    }
+
+    func continueStroke(at point: CGPoint) {
+        currentStroke?.points.append(StrokePoint(location: point))
+    }
+
+    func endStroke() {
+        guard let stroke = currentStroke else { return }
+        strokeHistory.append(strokes)
+        strokes.append(stroke)
+        currentStroke = nil
+    }
+
+    func placeStamp(at point: CGPoint) {
+        stampHistory.append(stamps)
+        stamps.append(StampPlacement(
+            emoji: selectedStamp,
+            location: point,
+            size: brushSize * 2.8
+        ))
+    }
+
+    func undo() {
+        if !strokeHistory.isEmpty { strokes = strokeHistory.removeLast() }
+        if !stampHistory.isEmpty  { stamps  = stampHistory.removeLast()  }
+    }
+
+    func clear() {
+        strokeHistory.append(strokes)
+        stampHistory.append(stamps)
+        strokes = []
+        stamps = []
+        currentStroke = nil
+    }
+
+    var canUndo: Bool { !strokeHistory.isEmpty || !stampHistory.isEmpty }
+
+    // MARK: - Persistence
+
+    private func loadFromUserDefaults() {
+        let userBrushes: [BrushDescriptor]
+        if let data = UserDefaults.standard.data(forKey: "brushPool"),
+           let decoded = try? JSONDecoder().decode([BrushDescriptor].self, from: data) {
+            userBrushes = decoded
+        } else {
+            userBrushes = []
+        }
+        brushPool = BrushDescriptor.systemBrushes + userBrushes
+
+        if let slotStrings = UserDefaults.standard.stringArray(forKey: "slotAssignments"),
+           slotStrings.count == 3 {
+            slotAssignments = slotStrings.map { $0.isEmpty ? nil : UUID(uuidString: $0) ?? nil }
+        }
+    }
+
+    private func persist() {
+        let userBrushes = brushPool.filter { !$0.isSystem }
+        if let data = try? JSONEncoder().encode(userBrushes) {
+            UserDefaults.standard.set(data, forKey: "brushPool")
+        }
+        let slotStrings = slotAssignments.map { $0?.uuidString ?? "" }
+        UserDefaults.standard.set(slotStrings, forKey: "slotAssignments")
+    }
+}
+
+// MARK: - Color Helper
+
+extension Color {
+    init(r: Int, g: Int, b: Int) {
+        self.init(
+            .sRGB,
+            red:   Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: 1
+        )
+    }
+}

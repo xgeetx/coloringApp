@@ -1,0 +1,270 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		79506C33256AF542AD816CC2 /* ColoringApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C564B9A0FD0C74ECF00C227D /* ColoringApp.swift */; };
+		F3EB1DD40F7AFFCF4C5B2777 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A8C13525269D9F9FAC9D986 /* ContentView.swift */; };
+		729A150EAE4793319564AD3F /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83D530576D5CF8B70831C69D /* Models.swift */; };
+		C4AB7FDD5D716DC6C04A1851 /* DrawingCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A2DFCCDBE9A1B8F1F09BBF /* DrawingCanvasView.swift */; };
+		F7F05704D84B9EEBB88B372D /* ColorPaletteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBC914D05171A8483AEA5F7D /* ColorPaletteView.swift */; };
+		1BB9EDED3C1C851213AE4E73 /* ToolsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 296E689D6A8BC819B43265A6 /* ToolsView.swift */; };
+		BCB6FA6CCC1DAB37ED83C111 /* StampsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DE976AF216CEC0676735A2D /* StampsView.swift */; };
+		34DE8C3E0DFD09AB8112D31D /* TopToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6196732555910C64BD82DC53 /* TopToolbarView.swift */; };
+		B08E7F3352C30F95E823AF00 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 238243F2CAD1B7AD4D521E07 /* Info.plist */; };
+		A1B2C3D4E5F60718293A4B5C /* BrushBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C6D7E8F9A0B1C2D3E4F5A6 /* BrushBuilderView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		C564B9A0FD0C74ECF00C227D /* ColoringApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColoringApp.swift; sourceTree = "<group>"; };
+		0A8C13525269D9F9FAC9D986 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		83D530576D5CF8B70831C69D /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		51A2DFCCDBE9A1B8F1F09BBF /* DrawingCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingCanvasView.swift; sourceTree = "<group>"; };
+		DBC914D05171A8483AEA5F7D /* ColorPaletteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorPaletteView.swift; sourceTree = "<group>"; };
+		296E689D6A8BC819B43265A6 /* ToolsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolsView.swift; sourceTree = "<group>"; };
+		2DE976AF216CEC0676735A2D /* StampsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StampsView.swift; sourceTree = "<group>"; };
+		6196732555910C64BD82DC53 /* TopToolbarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TopToolbarView.swift; sourceTree = "<group>"; };
+		238243F2CAD1B7AD4D521E07 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B5C6D7E8F9A0B1C2D3E4F5A6 /* BrushBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrushBuilderView.swift; sourceTree = "<group>"; };
+		D91517BFBDECE389497A425B /* ColoringFun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ColoringFun.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		059DB2086B49B680F85B3555 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		7174CA134E46658D8B19601F /* ColoringApp */ = {
+			isa = PBXGroup;
+			children = (
+				C564B9A0FD0C74ECF00C227D /* ColoringApp.swift */,
+				0A8C13525269D9F9FAC9D986 /* ContentView.swift */,
+				83D530576D5CF8B70831C69D /* Models.swift */,
+				51A2DFCCDBE9A1B8F1F09BBF /* DrawingCanvasView.swift */,
+				DBC914D05171A8483AEA5F7D /* ColorPaletteView.swift */,
+				296E689D6A8BC819B43265A6 /* ToolsView.swift */,
+				2DE976AF216CEC0676735A2D /* StampsView.swift */,
+				6196732555910C64BD82DC53 /* TopToolbarView.swift */,
+				B5C6D7E8F9A0B1C2D3E4F5A6 /* BrushBuilderView.swift */,
+				238243F2CAD1B7AD4D521E07 /* Info.plist */,
+			);
+			path = ColoringApp;
+			sourceTree = "<group>";
+		};
+		DC9A3D7B44FDA1296F036EB8 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D91517BFBDECE389497A425B /* ColoringFun.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2B731CEFC6751AAE0EC69B98 = {
+			isa = PBXGroup;
+			children = (
+				7174CA134E46658D8B19601F /* ColoringApp */,
+				DC9A3D7B44FDA1296F036EB8 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		42AEFBAE01D2DFD981F7DA7D /* ColoringFun */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 46D97131A9FC5FD2647EF0C1 /* Build configuration list for PBXNativeTarget "ColoringFun" */;
+			buildPhases = (
+				FCA229C23F166EBB0BA5029E /* Sources */,
+				059DB2086B49B680F85B3555 /* Frameworks */,
+				B9C6EB6F79FC54535ACB3053 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ColoringFun;
+			productName = ColoringFun;
+			productReference = D91517BFBDECE389497A425B /* ColoringFun.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		46F86FAA6BBF9AC94A7E4595 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					42AEFBAE01D2DFD981F7DA7D = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 813FD6012A496A7F1C09B5BD /* Build configuration list for PBXProject "ColoringFun" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 2B731CEFC6751AAE0EC69B98;
+			productRefGroup = DC9A3D7B44FDA1296F036EB8 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				42AEFBAE01D2DFD981F7DA7D /* ColoringFun */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B9C6EB6F79FC54535ACB3053 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FCA229C23F166EBB0BA5029E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				79506C33256AF542AD816CC2 /* ColoringApp.swift in Sources */,
+				F3EB1DD40F7AFFCF4C5B2777 /* ContentView.swift in Sources */,
+				729A150EAE4793319564AD3F /* Models.swift in Sources */,
+				C4AB7FDD5D716DC6C04A1851 /* DrawingCanvasView.swift in Sources */,
+				F7F05704D84B9EEBB88B372D /* ColorPaletteView.swift in Sources */,
+				1BB9EDED3C1C851213AE4E73 /* ToolsView.swift in Sources */,
+				BCB6FA6CCC1DAB37ED83C111 /* StampsView.swift in Sources */,
+				34DE8C3E0DFD09AB8112D31D /* TopToolbarView.swift in Sources */,
+				A1B2C3D4E5F60718293A4B5C /* BrushBuilderView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		297783AD503B1BA0396414E6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSET_CATALOG_COMPILER_APP_ICON_NAME = AppIcon;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				INFOPLIST_FILE = ColoringApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Debug;
+		};
+		D96436E8E389A6C2A0075AEE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSET_CATALOG_COMPILER_APP_ICON_NAME = AppIcon;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				INFOPLIST_FILE = ColoringApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				COPY_PHASE_STRIP = NO;
+			};
+			name = Release;
+		};
+		C2675466300EF0FAB302F83B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSTEWITH_PARENT = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "";
+				INFOPLIST_FILE = ColoringApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coloringapp.ColoringFun;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Debug;
+		};
+		D896D7C12F1A221C5DD818AC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETS_WITH_PARENT = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = ColoringApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.coloringapp.ColoringFun;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 2;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		813FD6012A496A7F1C09B5BD /* Build configuration list for PBXProject "ColoringFun" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				297783AD503B1BA0396414E6 /* Debug */,
+				D96436E8E389A6C2A0075AEE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		46D97131A9FC5FD2647EF0C1 /* Build configuration list for PBXNativeTarget "ColoringFun" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C2675466300EF0FAB302F83B /* Debug */,
+				D896D7C12F1A221C5DD818AC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 46F86FAA6BBF9AC94A7E4595 /* Project object */;
+}

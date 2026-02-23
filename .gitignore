@@ -1,0 +1,48 @@
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+# Build
+build/
+Build/
+
+# CocoaPods / SPM
+Pods/
+.build/
+*.resolved
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+
+# WSL Zone.Identifier metadata
+*:Zone.Identifier
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
