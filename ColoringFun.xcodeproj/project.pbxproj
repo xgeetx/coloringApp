@@ -17,6 +17,9 @@
 		34DE8C3E0DFD09AB8112D31D /* TopToolbarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6196732555910C64BD82DC53 /* TopToolbarView.swift */; };
 		B08E7F3352C30F95E823AF00 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 238243F2CAD1B7AD4D521E07 /* Info.plist */; };
 		A1B2C3D4E5F60718293A4B5C /* BrushBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5C6D7E8F9A0B1C2D3E4F5A6 /* BrushBuilderView.swift */; };
+		BA01CB02DC03ED04FE05AF06 /* AppRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01BB02CC03DD04EE05FF06 /* AppRegistry.swift */; };
+		DC01ED02FE03AF04BA05CB06 /* HubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC01DD02EE03FF04AA05BB06 /* HubView.swift */; };
+		FE01AF02BA03CB04DC05ED06 /* AppRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +34,9 @@
 		238243F2CAD1B7AD4D521E07 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		B5C6D7E8F9A0B1C2D3E4F5A6 /* BrushBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrushBuilderView.swift; sourceTree = "<group>"; };
 		D91517BFBDECE389497A425B /* ColoringFun.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ColoringFun.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA01BB02CC03DD04EE05FF06 /* AppRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRegistry.swift; sourceTree = "<group>"; };
+		CC01DD02EE03FF04AA05BB06 /* HubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubView.swift; sourceTree = "<group>"; };
+		EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRequestView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +63,9 @@
 				6196732555910C64BD82DC53 /* TopToolbarView.swift */,
 				B5C6D7E8F9A0B1C2D3E4F5A6 /* BrushBuilderView.swift */,
 				238243F2CAD1B7AD4D521E07 /* Info.plist */,
+				AA01BB02CC03DD04EE05FF06 /* AppRegistry.swift */,
+				CC01DD02EE03FF04AA05BB06 /* HubView.swift */,
+				EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */,
 			);
 			path = ColoringApp;
 			sourceTree = "<group>";
@@ -154,6 +163,9 @@
 				BCB6FA6CCC1DAB37ED83C111 /* StampsView.swift in Sources */,
 				34DE8C3E0DFD09AB8112D31D /* TopToolbarView.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5C /* BrushBuilderView.swift in Sources */,
+				BA01CB02DC03ED04FE05AF06 /* AppRegistry.swift in Sources */,
+				DC01ED02FE03AF04BA05CB06 /* HubView.swift in Sources */,
+				FE01AF02BA03CB04DC05ED06 /* AppRequestView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
