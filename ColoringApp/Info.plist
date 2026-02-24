@@ -48,5 +48,9 @@
 	<array>
 		<integer>2</integer>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>To record your app request</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>To turn your voice into text for your app request</string>
 </dict>
 </plist>
