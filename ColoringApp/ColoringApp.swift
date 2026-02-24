@@ -4,7 +4,7 @@ import SwiftUI
 struct ColoringFunApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HubView()
                 .preferredColorScheme(.light)
         }
     }
