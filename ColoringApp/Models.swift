@@ -183,7 +183,7 @@ class DrawingState: ObservableObject {
     private var stampHistory: [[StampPlacement]] = []
 
     init() {
-        loadFromUserDefaults()
+        loadPersistedState()
     }
 
     // MARK: - Pool Management
@@ -227,6 +227,7 @@ class DrawingState: ObservableObject {
         strokeHistory.append(strokes)
         strokes.append(stroke)
         currentStroke = nil
+        persistDrawing()
     }
 
     func placeStamp(at point: CGPoint) {
@@ -236,11 +237,13 @@ class DrawingState: ObservableObject {
             location: point,
             size: brushSize * 2.8
         ))
+        persistDrawing()
     }
 
     func undo() {
         if !strokeHistory.isEmpty { strokes = strokeHistory.removeLast() }
         if !stampHistory.isEmpty  { stamps  = stampHistory.removeLast()  }
+        persistDrawing()
     }
 
     func clear() {
@@ -249,13 +252,14 @@ class DrawingState: ObservableObject {
         strokes = []
         stamps = []
         currentStroke = nil
+        persistDrawing()
     }
 
     var canUndo: Bool { !strokeHistory.isEmpty || !stampHistory.isEmpty }
 
     // MARK: - Persistence
 
-    private func loadFromUserDefaults() {
+    private func loadPersistedState() {
         let userBrushes: [BrushDescriptor]
         if let data = UserDefaults.standard.data(forKey: "brushPool"),
            let decoded = try? JSONDecoder().decode([BrushDescriptor].self, from: data) {
@@ -269,6 +273,8 @@ class DrawingState: ObservableObject {
            slotStrings.count == 3 {
             slotAssignments = slotStrings.map { $0.isEmpty ? nil : UUID(uuidString: $0) ?? nil }
         }
+
+        loadDrawing()
     }
 
     private func persist() {
@@ -278,6 +284,31 @@ class DrawingState: ObservableObject {
         }
         let slotStrings = slotAssignments.map { $0?.uuidString ?? "" }
         UserDefaults.standard.set(slotStrings, forKey: "slotAssignments")
+    }
+
+    private var drawingFileURL: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("currentDrawing.json")
+    }
+
+    func persistDrawing() {
+        let snapshot = DrawingSnapshot(
+            strokes:         strokes.map { CodableStroke($0) },
+            stamps:          stamps.map  { CodableStampPlacement($0) },
+            backgroundColor: CodableColor(backgroundColor)
+        )
+        if let data = try? JSONEncoder().encode(snapshot) {
+            try? data.write(to: drawingFileURL, options: .atomic)
+        }
+    }
+
+    private func loadDrawing() {
+        guard let data = try? Data(contentsOf: drawingFileURL),
+              let snapshot = try? JSONDecoder().decode(DrawingSnapshot.self, from: data)
+        else { return }
+        strokes         = snapshot.strokes.map { $0.stroke }
+        stamps          = snapshot.stamps.map  { $0.stampPlacement }
+        backgroundColor = snapshot.backgroundColor.color
     }
 }
 
