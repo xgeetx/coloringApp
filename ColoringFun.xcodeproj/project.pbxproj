@@ -20,6 +20,7 @@
 		BA01CB02DC03ED04FE05AF06 /* AppRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01BB02CC03DD04EE05FF06 /* AppRegistry.swift */; };
 		DC01ED02FE03AF04BA05CB06 /* HubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC01DD02EE03FF04AA05BB06 /* HubView.swift */; };
 		FE01AF02BA03CB04DC05ED06 /* AppRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */; };
+		22A2B2C2D2E2F2A3B3C3D3E3 /* DrawingPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A1B1C1D1E1F1A2B2C2D2E2 /* DrawingPersistence.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,7 @@
 		AA01BB02CC03DD04EE05FF06 /* AppRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRegistry.swift; sourceTree = "<group>"; };
 		CC01DD02EE03FF04AA05BB06 /* HubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubView.swift; sourceTree = "<group>"; };
 		EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRequestView.swift; sourceTree = "<group>"; };
+		11A1B1C1D1E1F1A2B2C2D2E2 /* DrawingPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingPersistence.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -66,6 +68,7 @@
 				AA01BB02CC03DD04EE05FF06 /* AppRegistry.swift */,
 				CC01DD02EE03FF04AA05BB06 /* HubView.swift */,
 				EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */,
+				11A1B1C1D1E1F1A2B2C2D2E2 /* DrawingPersistence.swift */,
 			);
 			path = ColoringApp;
 			sourceTree = "<group>";
@@ -166,6 +169,7 @@
 				BA01CB02DC03ED04FE05AF06 /* AppRegistry.swift in Sources */,
 				DC01ED02FE03AF04BA05CB06 /* HubView.swift in Sources */,
 				FE01AF02BA03CB04DC05ED06 /* AppRequestView.swift in Sources */,
+				22A2B2C2D2E2F2A3B3C3D3E3 /* DrawingPersistence.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
