@@ -60,6 +60,7 @@ struct AppRequestView: View {
                 }
             }
         }
+        .navigationViewStyle(.stack)
         .sheet(isPresented: $showMailCompose) {
             MailComposeView(
                 toEmail: "quintus851@gmail.com",
