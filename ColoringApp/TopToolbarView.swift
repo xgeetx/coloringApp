@@ -6,9 +6,19 @@ struct TopToolbarView: View {
     @ObservedObject var state: DrawingState
     @State private var showBgColorPicker = false
     @State private var showClearConfirm = false
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         HStack(spacing: 14) {
+            // Home
+            ToolbarButton(
+                icon: "house.fill",
+                label: "Home",
+                color: .indigo,
+                disabled: false,
+                action: { dismiss() }
+            )
+
             // App title
             HStack(spacing: 6) {
                 Text("🎨")
