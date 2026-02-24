@@ -1,0 +1,10 @@
+{
+  "planPath": "docs/plans/2026-02-24-drawing-persistence.md",
+  "tasks": [
+    {"id": 22, "subject": "Task 1: Create DrawingPersistence.swift",                   "status": "pending"},
+    {"id": 23, "subject": "Task 2: Extend DrawingState in Models.swift",               "status": "pending", "blockedBy": [22]},
+    {"id": 24, "subject": "Task 3: Register DrawingPersistence.swift in project.pbxproj", "status": "pending", "blockedBy": [23]},
+    {"id": 25, "subject": "Task 4: Push and verify on device",                         "status": "pending", "blockedBy": [24]}
+  ],
+  "lastUpdated": "2026-02-24T00:00:00Z"
+}
