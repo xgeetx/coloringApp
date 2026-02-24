@@ -181,10 +181,10 @@ struct SlotButton: View {
             HStack(spacing: 6) {
                 Text(brush?.icon ?? "＋")
                     .font(.system(size: filled ? 22 : 18))
-                    .foregroundStyle(filled ? .primary : .tertiary)
+                    .foregroundStyle(filled ? Color.primary : Color.secondary)
                 Text(brush?.name ?? "Empty")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(filled ? (isSelected ? .white : .primary) : .tertiary)
+                    .foregroundStyle(filled ? (isSelected ? Color.white : Color.primary) : Color.secondary)
                 Spacer()
             }
             .frame(maxWidth: .infinity)
@@ -258,7 +258,7 @@ struct PoolPickerView: View {
                 Text(brush.name)
                 Spacer()
                 if state.slotAssignments[slot] == brush.id {
-                    Image(systemName: "checkmark").foregroundStyle(.accentColor)
+                    Image(systemName: "checkmark").foregroundStyle(Color.accentColor)
                 }
             }
         }
