@@ -82,6 +82,8 @@
 				A1F1B2C3D4E5F6A7B8C9D0E1 /* FlyoutContainerView.swift */,
 				C3F3D4E5F6A7B8C9D0E1F2A3 /* LeftStripView.swift */,
 				E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */,
+				A2B2C3D4E5F6A7B8C9D0E1F2 /* KidContentView.swift */,
+				C4D4E5F6A7B8C9D0E1F2A3B4 /* KidBrushBuilderView.swift */,
 			);
 			path = ColoringApp;
 			sourceTree = "<group>";
@@ -186,6 +188,8 @@
 				B2F2C3D4E5F6A7B8C9D0E1F2 /* FlyoutContainerView.swift in Sources */,
 				D4F4E5F6A7B8C9D0E1F2A3B4 /* LeftStripView.swift in Sources */,
 				F6A6B7C8D9E0F1A2B3C4D5E6 /* RightStripView.swift in Sources */,
+				B3C3D4E5F6A7B8C9D0E1F2A3 /* KidContentView.swift in Sources */,
+				D5E5F6A7B8C9D0E1F2A3B4C5 /* KidBrushBuilderView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
