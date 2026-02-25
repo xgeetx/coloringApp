@@ -222,6 +222,11 @@ struct KidBrushBuilderView: View {
             sizeVariation: selectedTexture != .patternStamp ? intensity : 0.0,
             isSystem: false
         )
+        // Cap at 2: remove oldest user brush first if already at limit
+        let userBrushes = state.brushPool.filter { !$0.isSystem }
+        if userBrushes.count >= 2, let oldest = userBrushes.first {
+            state.deleteBrush(id: oldest.id)
+        }
         state.addBrush(descriptor)
         state.selectedBrush = descriptor
         state.isEraserMode  = false
@@ -243,7 +248,7 @@ struct KidTexturePickerTile: View {
             id: UUID(), name: "", icon: "",
             baseStyle: style,
             patternShape: style == .patternStamp ? .star : nil,
-            stampSpacing: 1.2, sizeVariation: 0.5, isSystem: false
+            stampSpacing: 1.2, sizeVariation: 0.5, isSystem: true
         )
     }
 
