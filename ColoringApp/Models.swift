@@ -65,6 +65,78 @@ enum PatternShape: String, Codable, CaseIterable {
     }
 
     var displayName: String { rawValue.capitalized }
+
+    func path(center: CGPoint, size: CGFloat) -> Path {
+        let r = size / 2
+        switch self {
+        case .star:
+            var p = Path()
+            let total = 10
+            for i in 0..<total {
+                let angle = (Double(i) / Double(total)) * 2 * .pi - .pi / 2
+                let rr: CGFloat = i % 2 == 0 ? r : r * 0.42
+                let x = center.x + rr * CGFloat(cos(angle))
+                let y = center.y + rr * CGFloat(sin(angle))
+                if i == 0 { p.move(to: CGPoint(x: x, y: y)) }
+                else       { p.addLine(to: CGPoint(x: x, y: y)) }
+            }
+            p.closeSubpath()
+            return p
+        case .dot, .circle:
+            return Ellipse().path(in: CGRect(x: center.x - r, y: center.y - r,
+                                             width: size, height: size))
+        case .square:
+            return Rectangle().path(in: CGRect(x: center.x - r, y: center.y - r,
+                                               width: size, height: size))
+        case .diamond:
+            var p = Path()
+            p.move(to:    CGPoint(x: center.x,     y: center.y - r))
+            p.addLine(to: CGPoint(x: center.x + r, y: center.y))
+            p.addLine(to: CGPoint(x: center.x,     y: center.y + r))
+            p.addLine(to: CGPoint(x: center.x - r, y: center.y))
+            p.closeSubpath()
+            return p
+        case .heart:
+            let w = size, h = size
+            let x = center.x - w / 2, y = center.y - h / 2
+            var p = Path()
+            p.move(to: CGPoint(x: x + w * 0.5, y: y + h * 0.85))
+            p.addCurve(to: CGPoint(x: x, y: y + h * 0.35),
+                       control1: CGPoint(x: x + w * 0.1, y: y + h * 0.70),
+                       control2: CGPoint(x: x, y: y + h * 0.50))
+            p.addArc(center: CGPoint(x: x + w * 0.25, y: y + h * 0.25),
+                     radius: w * 0.25, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
+            p.addArc(center: CGPoint(x: x + w * 0.75, y: y + h * 0.25),
+                     radius: w * 0.25, startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
+            p.addCurve(to: CGPoint(x: x + w * 0.5, y: y + h * 0.85),
+                       control1: CGPoint(x: x + w, y: y + h * 0.50),
+                       control2: CGPoint(x: x + w * 0.9, y: y + h * 0.70))
+            p.closeSubpath()
+            return p
+        case .flower:
+            var p = Path()
+            let petalR = size * 0.28
+            let orbit  = size * 0.24
+            for i in 0..<6 {
+                let angle = Double(i) / 6.0 * 2 * .pi
+                let cx = center.x + CGFloat(cos(angle)) * orbit
+                let cy = center.y + CGFloat(sin(angle)) * orbit
+                p.addEllipse(in: CGRect(x: cx - petalR, y: cy - petalR,
+                                        width: petalR * 2, height: petalR * 2))
+            }
+            let cr = petalR * 0.6
+            p.addEllipse(in: CGRect(x: center.x - cr, y: center.y - cr,
+                                    width: cr * 2, height: cr * 2))
+            return p
+        case .triangle:
+            var p = Path()
+            p.move(to:    CGPoint(x: center.x,     y: center.y - r))
+            p.addLine(to: CGPoint(x: center.x + r, y: center.y + r))
+            p.addLine(to: CGPoint(x: center.x - r, y: center.y + r))
+            p.closeSubpath()
+            return p
+        }
+    }
 }
 
 struct BrushDescriptor: Identifiable, Codable, Hashable {
