@@ -395,71 +395,130 @@ struct KidBrushPreview: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let pts = makeWave(in: size)
-            let sz: CGFloat = size.height * 0.38
-            let scale = brush.isSystem ? 1.0 : Double((0.4 + brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
-            switch brush.baseStyle {
-            case .crayon:  drawCrayon(ctx: ctx, pts: pts, sz: sz, scale: scale)
-            case .marker:  drawMarker(ctx: ctx, pts: pts, sz: sz, scale: scale)
-            case .chalk:   drawChalk(ctx: ctx, pts: pts, sz: sz, scale: scale)
-            case .patternStamp: drawStamps(ctx: ctx, pts: pts, sz: sz)
+            let seed = brush.id.hashValue & 0x7FFF_FFFF
+            let w = size.width, h = size.height
+            if brush.isSystem {
+                switch brush.baseStyle {
+                case .crayon:       drawCrayon(ctx: ctx, w: w, h: h, seed: seed)
+                case .marker:       drawMarker(ctx: ctx, w: w, h: h)
+                case .chalk:        drawChalk(ctx: ctx, w: w, h: h, seed: seed)
+                case .patternStamp: drawSparkle(ctx: ctx, w: w, h: h, seed: seed)
+                }
+            } else {
+                drawSplatter(ctx: ctx, w: w, h: h, seed: seed)
             }
         }
     }
 
-    private func makeWave(in size: CGSize) -> [CGPoint] {
-        (0..<30).map { i in
-            let t = CGFloat(i) / 29
-            return CGPoint(
-                x: 6 + t * (size.width - 12),
-                y: size.height / 2 + sin(t * .pi * 2.5) * (size.height * 0.22)
-            )
-        }
+    // Deterministic value in [0, 1) — same hash as DrawingCanvasView.deterministicJitter
+    private func rng(_ seed: Int, _ i: Int) -> CGFloat {
+        let h = (seed ^ (i &* 2654435761)) & 0x7FFF_FFFF
+        return CGFloat(h % 10000) / 10000.0
     }
 
-    private func drawCrayon(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat, scale: Double) {
-        let passes: [(CGFloat, CGFloat, Double)] = [(-1.5,-1.0,0.50),(0,0,0.65),(1.5,1.0,0.45)]
+    // ── Crayon: diagonal band, 5 layered passes + paper-grain stipple ──
+    private func drawCrayon(ctx: GraphicsContext, w: CGFloat, h: CGFloat, seed: Int) {
+        let lw: CGFloat = min(w, h) * 0.38
+        let start = CGPoint(x: 6, y: h - 6)
+        let end   = CGPoint(x: w - 6, y: 6)
+        let passes: [(CGFloat, CGFloat, Double)] = [
+            (-4, -2, 0.38), (-2, -1, 0.55), (0, 0, 0.70), (2, 1, 0.52), (4, 2, 0.35)
+        ]
         for (dx, dy, op) in passes {
             var path = Path()
-            let shifted = pts.map { CGPoint(x: $0.x + dx, y: $0.y + dy) }
-            guard let f = shifted.first else { continue }
-            path.move(to: f)
-            shifted.dropFirst().forEach { path.addLine(to: $0) }
-            ctx.stroke(path, with: .color(color.opacity(min(op * scale, 1.0))),
-                       style: StrokeStyle(lineWidth: sz * 0.85, lineCap: .round, lineJoin: .round))
+            path.move(to: CGPoint(x: start.x + dx, y: start.y + dy))
+            path.addLine(to: CGPoint(x: end.x + dx, y: end.y + dy))
+            ctx.stroke(path, with: .color(color.opacity(op)),
+                       style: StrokeStyle(lineWidth: lw, lineCap: .round))
+        }
+        // Grain stipple — dots scattered along the diagonal band
+        let ddx = end.x - start.x, ddy = end.y - start.y
+        for i in 0..<80 {
+            let t    = rng(seed, i * 4)
+            let perp = rng(seed, i * 4 + 1) * 2 - 1
+            let dotR = 0.4 + rng(seed, i * 4 + 2) * 1.4
+            let op   = 0.05 + rng(seed, i * 4 + 3) * 0.20
+            let x    = start.x + t * ddx + perp * lw * 0.5
+            let y    = start.y + t * ddy + perp * lw * 0.3
+            ctx.fill(Ellipse().path(in: CGRect(x: x - dotR, y: y - dotR,
+                                               width: dotR * 2, height: dotR * 2)),
+                     with: .color(color.opacity(op)))
         }
     }
 
-    private func drawMarker(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat, scale: Double) {
+    // ── Marker: clean horizontal stroke + soft ink-bleed halo ──
+    private func drawMarker(ctx: GraphicsContext, w: CGFloat, h: CGFloat) {
+        let lw: CGFloat = min(w, h) * 0.46
+        let y = h / 2
+        // Halo first (wider, very faint — ink bleed)
+        var haloPath = Path()
+        haloPath.move(to: CGPoint(x: 6, y: y))
+        haloPath.addLine(to: CGPoint(x: w - 6, y: y))
+        ctx.stroke(haloPath, with: .color(color.opacity(0.10)),
+                   style: StrokeStyle(lineWidth: lw * 1.5, lineCap: .round))
+        // Solid stroke on top
         var path = Path()
-        guard let f = pts.first else { return }
-        path.move(to: f)
-        pts.dropFirst().forEach { path.addLine(to: $0) }
-        ctx.stroke(path, with: .color(color.opacity(min(0.72 * scale, 1.0))),
-                   style: StrokeStyle(lineWidth: sz * 1.6, lineCap: .round, lineJoin: .round))
+        path.move(to: CGPoint(x: 6, y: y))
+        path.addLine(to: CGPoint(x: w - 6, y: y))
+        ctx.stroke(path, with: .color(color.opacity(0.88)),
+                   style: StrokeStyle(lineWidth: lw, lineCap: .round))
     }
 
-    private func drawChalk(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat, scale: Double) {
-        let passes: [(CGFloat, CGFloat, Double)] = [(-1.5,-1.0,0.30),(0,0,0.38),(1.2,0.8,0.28)]
+    // ── Chalk: 3 faint diagonal strokes + scattered dust dots ──
+    private func drawChalk(ctx: GraphicsContext, w: CGFloat, h: CGFloat, seed: Int) {
+        let lw: CGFloat = min(w, h) * 0.22
+        let start = CGPoint(x: 6, y: h - 6)
+        let end   = CGPoint(x: w - 6, y: 6)
+        let passes: [(CGFloat, CGFloat, Double)] = [(-3, -2, 0.20), (0, 0, 0.26), (3, 2, 0.18)]
         for (dx, dy, op) in passes {
             var path = Path()
-            let shifted = pts.map { CGPoint(x: $0.x + dx, y: $0.y + dy) }
-            guard let f = shifted.first else { continue }
-            path.move(to: f)
-            shifted.dropFirst().forEach { path.addLine(to: $0) }
-            ctx.stroke(path, with: .color(color.opacity(min(op * scale, 1.0))),
-                       style: StrokeStyle(lineWidth: sz * 0.65, lineCap: .round, lineJoin: .round))
+            path.move(to: CGPoint(x: start.x + dx, y: start.y + dy))
+            path.addLine(to: CGPoint(x: end.x + dx, y: end.y + dy))
+            ctx.stroke(path, with: .color(color.opacity(op)),
+                       style: StrokeStyle(lineWidth: lw, lineCap: .round))
+        }
+        // Chalk dust: micro-dots with wider spread than crayon grain
+        let ddx = end.x - start.x, ddy = end.y - start.y
+        for i in 0..<55 {
+            let t    = rng(seed, i * 4)
+            let perp = rng(seed, i * 4 + 1) * 2 - 1
+            let dotR = 0.2 + rng(seed, i * 4 + 2) * 0.9
+            let op   = 0.03 + rng(seed, i * 4 + 3) * 0.10
+            let x    = start.x + t * ddx + perp * lw * 1.8
+            let y    = start.y + t * ddy + perp * lw * 1.2
+            ctx.fill(Ellipse().path(in: CGRect(x: x - dotR, y: y - dotR,
+                                               width: dotR * 2, height: dotR * 2)),
+                     with: .color(color.opacity(op)))
         }
     }
 
-    private func drawStamps(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat) {
-        let shape = brush.patternShape ?? .star
-        let spacing = brush.stampSpacing * sz
-        var last: CGPoint? = nil
-        for pt in pts {
-            if let l = last, hypot(pt.x - l.x, pt.y - l.y) < spacing { continue }
-            last = pt
-            ctx.fill(shape.path(center: pt, size: sz), with: .color(color))
+    // ── Sparkle: scattered stars, no stroke ──
+    private func drawSparkle(ctx: GraphicsContext, w: CGFloat, h: CGFloat, seed: Int) {
+        for i in 0..<6 {
+            let x  = 8 + rng(seed, i * 3)     * (w - 16)
+            let y  = 8 + rng(seed, i * 3 + 1) * (h - 16)
+            let sz = 6 + rng(seed, i * 3 + 2) * 10
+            ctx.fill(PatternShape.star.path(center: CGPoint(x: x, y: y), size: sz),
+                     with: .color(color))
+        }
+    }
+
+    // ── Splatter: seeded dot cloud for user-created brushes ──
+    private func drawSplatter(ctx: GraphicsContext, w: CGFloat, h: CGFloat, seed: Int) {
+        let cx = w / 2, cy = h / 2
+        let maxR = min(w, h) * 0.44
+        for i in 0..<30 {
+            let angle  = rng(seed, i * 4)     * .pi * 2
+            let radius = 2 + rng(seed, i * 4 + 1) * maxR
+            let dotR   = 1 + rng(seed, i * 4 + 2) * 4.5
+            let op     = 0.30 + rng(seed, i * 4 + 3) * 0.60
+            let x = cx + cos(angle) * radius
+            let y = cy + sin(angle) * radius
+            ctx.fill(
+                Ellipse().path(in: CGRect(x: x - dotR, y: y - dotR,
+                                          width: dotR * 2, height: dotR * 2)),
+                with: .color(color.opacity(op))
+            )
         }
     }
 }
