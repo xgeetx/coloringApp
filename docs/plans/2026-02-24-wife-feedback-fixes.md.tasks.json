@@ -1,0 +1,19 @@
+{
+  "planPath": "docs/plans/2026-02-24-wife-feedback-fixes.md",
+  "tasks": [
+    {"id": 5,  "subject": "Task 1: Hearts brush uniform size",                    "status": "pending"},
+    {"id": 6,  "subject": "Task 2: Stamps auto-select first stamp on category change", "status": "pending"},
+    {"id": 7,  "subject": "Task 3: Eraser hard erase only",                       "status": "pending"},
+    {"id": 8,  "subject": "Task 4: Eraser move to top toolbar",                   "status": "pending"},
+    {"id": 9,  "subject": "Task 5: Crayon 5-pass enhanced texture",               "status": "pending"},
+    {"id": 10, "subject": "Task 6: Opacity model and persistence",                 "status": "pending"},
+    {"id": 11, "subject": "Task 7: Opacity canvas rendering",                      "status": "pending", "blockedBy": [10]},
+    {"id": 12, "subject": "Task 8: Opacity slider UI in ToolsView",               "status": "pending", "blockedBy": [10]},
+    {"id": 13, "subject": "Task 9: Background expanded swatches",                  "status": "pending"},
+    {"id": 14, "subject": "Task 10: System ColorPicker in palette bar",            "status": "pending"},
+    {"id": 15, "subject": "Task 11: Pinch gesture for brush resize",               "status": "pending"},
+    {"id": 16, "subject": "Task 12: Hub triple-tap to rename title",               "status": "pending"},
+    {"id": 17, "subject": "Task 13: Final smoke test and push",                    "status": "pending", "blockedBy": [5,6,7,8,9,10,11,12,13,14,15,16]}
+  ],
+  "lastUpdated": "2026-02-24T00:00:00Z"
+}
