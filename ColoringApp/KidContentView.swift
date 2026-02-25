@@ -133,7 +133,21 @@ struct KidTopToolbarView: View {
                 if state.isEraserMode { state.isStampMode = false }
             }
 
-            Spacer()
+            if !state.isStampMode && !state.isEraserMode {
+                HStack(spacing: 20) {
+                    KidSlider(label: "Size",
+                              value: $state.brushSize,
+                              range: 6...80,
+                              color: .blue)
+                    KidSlider(label: "Opacity",
+                              value: $state.brushOpacity,
+                              range: 0.2...1.0,
+                              color: .purple)
+                }
+                .padding(.horizontal, 12)
+            } else {
+                Spacer()
+            }
 
             KidToolbarButton(icon: "trash", label: "Clear", color: .red, disabled: false) {
                 showClearConfirm = true
@@ -195,6 +209,24 @@ struct KidToolbarButton: View {
         .buttonStyle(.plain)
         .scaleEffect(pressed ? 0.90 : 1.0)
         .animation(.spring(response: 0.15, dampingFraction: 0.6), value: pressed)
+    }
+}
+
+struct KidSlider: View {
+    let label: String
+    @Binding var value: CGFloat
+    let range: ClosedRange<CGFloat>
+    let color: Color
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(color)
+            Slider(value: $value, in: range)
+                .tint(color)
+        }
+        .frame(maxWidth: 150)
     }
 }
 
