@@ -41,6 +41,7 @@ struct ContentView: View {
                                 activeFlyout = nil
                             }
                         })
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
@@ -107,6 +108,7 @@ struct ContentView: View {
                     RightStripView(state: state, activeFlyout: $activeFlyout)
                 }
                 .padding(.horizontal, 12)
+                .frame(maxHeight: .infinity)
 
                 // ── Bottom: color palette ──
                 ColorPaletteView(state: state)
