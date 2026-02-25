@@ -37,16 +37,6 @@ struct BrushToolsView: View {
                         )
                     }
 
-                    // Eraser
-                    BrushDescriptorButton(
-                        icon: "⬜",
-                        label: "Eraser",
-                        isSelected: state.isEraserMode,
-                        onTap: {
-                            state.isEraserMode = true
-                            state.isStampMode  = false
-                        }
-                    )
                 }
 
                 Divider()

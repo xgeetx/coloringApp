@@ -82,6 +82,22 @@ struct TopToolbarView: View {
                 Button("Clear It! 🗑️", role: .destructive) { state.clear() }
                 Button("Keep It! 🎨", role: .cancel) {}
             }
+
+            // Eraser
+            ToolbarButton(
+                icon: "eraser.fill",
+                label: "Eraser",
+                color: .orange,
+                disabled: false,
+                action: {
+                    state.isEraserMode.toggle()
+                    if state.isEraserMode { state.isStampMode = false }
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(state.isEraserMode ? Color.orange : Color.clear, lineWidth: 2)
+            )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
