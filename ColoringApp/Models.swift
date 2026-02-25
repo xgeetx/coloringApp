@@ -119,6 +119,7 @@ struct Stroke: Identifiable {
     let color: Color
     let brushSize: CGFloat
     let brush: BrushDescriptor          // was: brushType: BrushType
+    let opacity: CGFloat
 }
 
 struct StampPlacement: Identifiable {
@@ -164,6 +165,7 @@ class DrawingState: ObservableObject {
     @Published var selectedColor: Color  = CrayolaColor.palette[0].color
     @Published var backgroundColor: Color = Color(r: 255, g: 250, b: 235)
     @Published var brushSize: CGFloat   = 24
+    @Published var brushOpacity: CGFloat = 1.0
     @Published var selectedBrush: BrushDescriptor = BrushDescriptor.systemBrushes[0]
     @Published var isEraserMode: Bool   = false
     @Published var selectedStamp: String = "🦋"
@@ -208,13 +210,15 @@ class DrawingState: ObservableObject {
     // MARK: - Stroke Actions
 
     func beginStroke(at point: CGPoint) {
-        let brush = isEraserMode ? BrushDescriptor.eraser : selectedBrush
-        let color = isEraserMode ? backgroundColor : selectedColor
+        let brush   = isEraserMode ? BrushDescriptor.eraser : selectedBrush
+        let color   = isEraserMode ? backgroundColor : selectedColor
+        let opacity = isEraserMode ? 1.0 : brushOpacity
         currentStroke = Stroke(
-            points: [StrokePoint(location: point)],
-            color: color,
+            points:    [StrokePoint(location: point)],
+            color:     color,
             brushSize: brushSize,
-            brush: brush
+            brush:     brush,
+            opacity:   opacity
         )
     }
 
@@ -274,16 +278,20 @@ class DrawingState: ObservableObject {
             slotAssignments = slotStrings.map { $0.isEmpty ? nil : UUID(uuidString: $0) ?? nil }
         }
 
+        let savedOpacity = CGFloat(UserDefaults.standard.double(forKey: "brushOpacity"))
+        brushOpacity = savedOpacity > 0 ? savedOpacity : 1.0
+
         loadDrawing()
     }
 
-    private func persist() {
+    func persist() {
         let userBrushes = brushPool.filter { !$0.isSystem }
         if let data = try? JSONEncoder().encode(userBrushes) {
             UserDefaults.standard.set(data, forKey: "brushPool")
         }
         let slotStrings = slotAssignments.map { $0?.uuidString ?? "" }
         UserDefaults.standard.set(slotStrings, forKey: "slotAssignments")
+        UserDefaults.standard.set(Double(brushOpacity), forKey: "brushOpacity")
     }
 
     private var drawingFileURL: URL {
@@ -323,5 +331,13 @@ extension Color {
             blue:  Double(b) / 255,
             opacity: 1
         )
+    }
+}
+
+// MARK: - Comparable Clamp Helper
+
+extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
     }
 }

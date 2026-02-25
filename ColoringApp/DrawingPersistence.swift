@@ -37,12 +37,23 @@ struct CodableStroke: Codable {
     let color: CodableColor
     let brushSize: Double
     let brush: BrushDescriptor   // already Codable
+    let opacity: Double
 
     init(_ stroke: Stroke) {
         points    = stroke.points.map { CodableStrokePoint($0) }
         color     = CodableColor(stroke.color)
         brushSize = Double(stroke.brushSize)
         brush     = stroke.brush
+        opacity   = Double(stroke.opacity)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        points    = try container.decode([CodableStrokePoint].self, forKey: .points)
+        color     = try container.decode(CodableColor.self, forKey: .color)
+        brushSize = try container.decode(Double.self, forKey: .brushSize)
+        brush     = try container.decode(BrushDescriptor.self, forKey: .brush)
+        opacity   = try container.decodeIfPresent(Double.self, forKey: .opacity) ?? 1.0
     }
 
     var stroke: Stroke {
@@ -50,7 +61,8 @@ struct CodableStroke: Codable {
             points:    points.map { $0.strokePoint },
             color:     color.color,
             brushSize: CGFloat(brushSize),
-            brush:     brush
+            brush:     brush,
+            opacity:   CGFloat(opacity)
         )
     }
 }
