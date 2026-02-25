@@ -18,6 +18,19 @@ struct ColorPaletteView: View {
                     }
                 )
             }
+
+            // Custom color well — opens system color picker
+            ColorPicker("", selection: Binding(
+                get: { state.selectedColor },
+                set: { newColor in
+                    state.selectedColor = newColor
+                    state.isEraserMode  = false
+                    state.isStampMode   = false
+                }
+            ), supportsOpacity: false)
+            .labelsHidden()
+            .frame(width: 36, height: 36)
+            .padding(.horizontal, 4)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
