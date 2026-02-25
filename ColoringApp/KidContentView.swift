@@ -1,4 +1,40 @@
 import SwiftUI
+import AVFoundation
+
+// MARK: - Stamp Sounds
+
+final class StampSynth {
+    static let shared = StampSynth()
+    private let synth = AVSpeechSynthesizer()
+    func speak(_ text: String) {
+        synth.stopSpeaking(at: .immediate)
+        let u = AVSpeechUtterance(string: text)
+        u.rate = 0.45
+        u.pitchMultiplier = 1.2
+        synth.speak(u)
+    }
+}
+
+let stampSoundMap: [String: String] = [
+    "🐶":"Woof woof!", "🐱":"Meow!", "🐰":"Squeak squeak!", "🦊":"Ring ring!",
+    "🐻":"Roar!", "🐼":"Hee hee!", "🐨":"Hmm!", "🐯":"Roar roar!",
+    "🦁":"Roaaaar!", "🐮":"Moo!", "🐷":"Oink oink!", "🐸":"Ribbit ribbit!",
+    "🐵":"Ooh ooh ah ah!", "🐔":"Cluck cluck!", "🐧":"Squawk!", "🦆":"Quack quack!",
+    "🐘":"Toot toot!", "🦒":"Hmm!", "🦓":"Neigh!", "🦬":"Moo!",
+    "🐬":"Click click!", "🐠":"Blub blub!", "🦀":"Snap snap!", "🐢":"Shhh!",
+    "🦋":"Flutter flutter!", "🐛":"Munch munch!", "🐜":"March march!", "🐝":"Buzz buzz!",
+    "🪲":"Click!", "🐞":"Wheee!", "🦗":"Chirp chirp!", "🕷️":"Boo!",
+    "🪳":"Skitter!", "🦟":"Buzz!", "🪰":"Zzap!", "🪱":"Wiggle wiggle!",
+    "🦂":"Snip snip!", "🐌":"Slurp!", "🦎":"Shhh!", "🐡":"Blub!",
+    "🌸":"So pretty!", "🌺":"Bloom!", "🌻":"Hello sunshine!", "🌹":"Ooh la la!",
+    "🌷":"So lovely!", "🌳":"Whoosh!", "🌲":"Shhh!", "🌴":"Sway sway!",
+    "🌵":"Poke!", "🍀":"Lucky lucky!", "🍁":"Whoosh!", "🍃":"Rustle rustle!",
+    "🌿":"Shh!", "🌱":"Pop!", "🌾":"Wave wave!", "🎋":"Creak!",
+    "⭐":"Ta-da!", "🌈":"Wow wow!", "☀️":"Shine shine!", "🌙":"Night night!",
+    "❤️":"I love you!", "🎈":"Pop pop!", "🎀":"Yay!", "🎁":"Surprise!",
+    "🏠":"Home sweet home!", "🚂":"Choo choo!", "🚀":"Blast off!", "🦄":"Magic!",
+    "🍦":"Yummy!", "🍭":"So sweet!", "🎪":"Ta-da ta-da!", "🎠":"Wheee!"
+]
 
 // MARK: - Kid Mode Root View
 
@@ -105,8 +141,7 @@ struct KidContentView: View {
             KidBrushBuilderView(state: state)
         }
         .sheet(isPresented: $showMoreStamps) {
-            // Reuse existing stamps flyout; dismiss = close sheet
-            StampsFlyoutView(state: state, onDismiss: { showMoreStamps = false })
+            StampsFlyoutView(state: state, onDismiss: { showMoreStamps = false }, isKidMode: true)
                 .kidSheetDetents()
         }
     }
@@ -256,21 +291,9 @@ struct KidBrushStripView: View {
                     }
                 }
 
-                // ── My Brushes: bordered box containing user brushes + Make ──
+                // ── My Brushes: bordered box with Make button first, then user brushes ──
                 VStack(spacing: 8) {
-                    ForEach(userBrushes) { brush in
-                        KidBrushButton(
-                            brush: brush,
-                            isSelected: !state.isStampMode && !state.isEraserMode
-                                        && state.selectedBrush.id == brush.id,
-                            color: state.selectedColor
-                        ) {
-                            state.selectedBrush = brush
-                            state.isStampMode   = false
-                            state.isEraserMode  = false
-                        }
-                    }
-
+                    // Make button at top so it's always visible without scrolling
                     Button(action: onBuildBrush) {
                         VStack(spacing: 4) {
                             Text("🔮")
@@ -283,6 +306,19 @@ struct KidBrushStripView: View {
                         .frame(height: 58)
                     }
                     .buttonStyle(.plain)
+
+                    ForEach(userBrushes) { brush in
+                        KidBrushButton(
+                            brush: brush,
+                            isSelected: !state.isStampMode && !state.isEraserMode
+                                        && state.selectedBrush.id == brush.id,
+                            color: state.selectedColor
+                        ) {
+                            state.selectedBrush = brush
+                            state.isStampMode   = false
+                            state.isEraserMode  = false
+                        }
+                    }
                 }
                 .padding(6)
                 .background(
@@ -343,74 +379,87 @@ struct KidBrushButton: View {
 
 // MARK: - Kid Stamp Grid (right panel)
 
-/// Shows the first 8 stamps from the first category, plus a "More" button.
+/// Shows 4 categories × up to 4 stamps each with category headers, plus a "More" button.
 struct KidStampGridView: View {
     @ObservedObject var state: DrawingState
     let onMoreTapped: () -> Void
 
-    // Fixed 8 quick-access stamps — first 8 animals
-    private let quickStamps: [String] = Array(
-        (allStampCategories.first?.stamps ?? []).prefix(8)
-    )
-
     var body: some View {
-        VStack(spacing: 6) {
-            LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 6
-            ) {
-                ForEach(quickStamps, id: \.self) { emoji in
-                    Button(action: {
-                        state.selectedStamp = emoji
-                        state.isStampMode   = true
-                        state.isEraserMode  = false
-                    }) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(
-                                    state.selectedStamp == emoji && state.isStampMode
-                                    ? Color.accentColor.opacity(0.25)
-                                    : Color.white.opacity(0.7)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .strokeBorder(
-                                            state.selectedStamp == emoji && state.isStampMode
-                                            ? Color.accentColor : Color.clear,
-                                            lineWidth: 2
-                                        )
-                                )
-                            Text(emoji)
-                                .font(.system(size: 28))
-                                .padding(6)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 6) {
+                ForEach(allStampCategories.indices, id: \.self) { i in
+                    let cat = allStampCategories[i]
+                    // Category header
+                    HStack(spacing: 4) {
+                        Text(cat.icon).font(.system(size: 13))
+                        Text(cat.name)
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                    LazyVGrid(
+                        columns: [GridItem(.flexible(), spacing: 4), GridItem(.flexible(), spacing: 4)],
+                        spacing: 4
+                    ) {
+                        ForEach(cat.stamps.prefix(4), id: \.self) { emoji in
+                            KidStampTile(emoji: emoji, state: state)
                         }
                     }
-                    .buttonStyle(.plain)
                 }
-            }
 
-            // "More" button
-            Button(action: onMoreTapped) {
-                Label("More", systemImage: "chevron.down.circle.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.purple)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 36)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color.purple.opacity(0.12))
-                    )
-            }
-            .buttonStyle(.plain)
+                // "More" button
+                Button(action: onMoreTapped) {
+                    Label("More", systemImage: "chevron.down.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(.purple)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 36)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.purple.opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
 
-            Spacer(minLength: 0)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 6)
         }
-        .padding(8)
+        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(.ultraThinMaterial)
                 .shadow(color: .black.opacity(0.14), radius: 8)
         )
+    }
+}
+
+struct KidStampTile: View {
+    let emoji: String
+    @ObservedObject var state: DrawingState
+    private var isSelected: Bool { state.selectedStamp == emoji && state.isStampMode }
+
+    var body: some View {
+        Button {
+            state.selectedStamp = emoji
+            state.isStampMode   = true
+            state.isEraserMode  = false
+            StampSynth.shared.speak(stampSoundMap[emoji] ?? emoji)
+        } label: {
+            Text(emoji)
+                .font(.system(size: 26))
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isSelected ? Color.accentColor.opacity(0.25) : Color.white.opacity(0.75))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
+                )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -448,15 +497,20 @@ struct KidBrushPreview: View {
         Canvas { ctx, size in
             let seed = brush.id.hashValue & 0x7FFF_FFFF
             let w = size.width, h = size.height
-            if brush.isSystem {
-                switch brush.baseStyle {
-                case .crayon:       drawCrayon(ctx: ctx, w: w, h: h, seed: seed)
-                case .marker:       drawMarker(ctx: ctx, w: w, h: h)
-                case .chalk:        drawChalk(ctx: ctx, w: w, h: h, seed: seed)
-                case .patternStamp: drawSparkle(ctx: ctx, w: w, h: h, seed: seed)
+            // Route on baseStyle for all brushes; only glitter user brushes use splatter
+            switch brush.baseStyle {
+            case .crayon:
+                drawCrayon(ctx: ctx, w: w, h: h, seed: seed)
+            case .marker:
+                drawMarker(ctx: ctx, w: w, h: h)
+            case .chalk:
+                drawChalk(ctx: ctx, w: w, h: h, seed: seed)
+            case .patternStamp:
+                if brush.isSystem {
+                    drawSparkle(ctx: ctx, w: w, h: h, seed: seed)
+                } else {
+                    drawSplatter(ctx: ctx, w: w, h: h, seed: seed)
                 }
-            } else {
-                drawSplatter(ctx: ctx, w: w, h: h, seed: seed)
             }
         }
     }
@@ -554,7 +608,7 @@ struct KidBrushPreview: View {
         }
     }
 
-    // ── Splatter: seeded dot cloud for user-created brushes ──
+    // ── Splatter: seeded dot cloud for user-created glitter brushes ──
     private func drawSplatter(ctx: GraphicsContext, w: CGFloat, h: CGFloat, seed: Int) {
         let cx = w / 2, cy = h / 2
         let maxR = min(w, h) * 0.44

@@ -205,6 +205,7 @@ struct StampPlacement: Identifiable {
     let emoji: String
     let location: CGPoint
     let size: CGFloat
+    let opacity: Double   // baked in at placement time
 }
 
 // MARK: - Stamp Categories
@@ -315,10 +316,17 @@ class DrawingState: ObservableObject {
     func placeStamp(at point: CGPoint) {
         stampHistory.append(stamps)
         stamps.append(StampPlacement(
-            emoji: selectedStamp,
+            emoji:    selectedStamp,
             location: point,
-            size: brushSize * 2.8
+            size:     brushSize * 2.8,
+            opacity:  Double(brushOpacity)
         ))
+        persistDrawing()
+    }
+
+    func removeStamp(id: UUID) {
+        stampHistory.append(stamps)
+        stamps.removeAll { $0.id == id }
         persistDrawing()
     }
 

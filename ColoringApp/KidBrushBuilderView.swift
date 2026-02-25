@@ -8,11 +8,16 @@ struct KidBrushBuilderView: View {
 
     @State private var selectedTexture: BrushBaseStyle = .crayon
     @State private var intensity: CGFloat = 0.5      // 0.0=soft, 1.0=bold (crayon/marker/chalk)
+    @State private var grainSpread: CGFloat = 1.0    // 0.5=tight, 3.0=spread (crayon only → stampSpacing)
     @State private var stampSpacing: CGFloat = 1.2   // dense←→spread (glitter)
     @State private var previewPoints: [CGPoint] = []
 
     private let textures: [BrushBaseStyle] = [.crayon, .marker, .chalk, .patternStamp]
     private let brushSize: CGFloat = 24
+
+    private var userBrushes: [BrushDescriptor] {
+        state.brushPool.filter { !$0.isSystem }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,7 +35,42 @@ struct KidBrushBuilderView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 24)
-            .padding(.bottom, 12)
+            .padding(.bottom, 8)
+
+            // ── Delete Row: show existing user brushes with × button ──
+            if !userBrushes.isEmpty {
+                HStack(spacing: 12) {
+                    Text("My Brushes:")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    ForEach(userBrushes) { brush in
+                        ZStack(alignment: .topTrailing) {
+                            KidBrushPreview(brush: brush, color: state.selectedColor)
+                                .frame(width: 52, height: 52)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Color.purple.opacity(0.3), lineWidth: 1.5)
+                                )
+                            Button {
+                                state.deleteBrush(id: brush.id)
+                                if state.selectedBrush.id == brush.id,
+                                   let first = state.brushPool.first {
+                                    state.selectedBrush = first
+                                }
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(.white, .red)
+                            }
+                            .offset(x: 6, y: -6)
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, 8)
+            }
 
             // ── Live Preview Canvas ──
             GeometryReader { _ in
@@ -61,10 +101,11 @@ struct KidBrushBuilderView: View {
                         }
                 )
             }
-            .frame(height: 180)
+            .frame(height: 160)
             .padding(.horizontal, 24)
             .onChange(of: selectedTexture) { _ in previewPoints = [] }
             .onChange(of: intensity)       { _ in previewPoints = [] }
+            .onChange(of: grainSpread)     { _ in previewPoints = [] }
             .onChange(of: stampSpacing)    { _ in previewPoints = [] }
 
             // ── Texture Picker ──
@@ -72,7 +113,7 @@ struct KidBrushBuilderView: View {
                 Text("Pick a texture")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .padding(.top, 20)
+                    .padding(.top, 16)
 
                 HStack(spacing: 8) {
                     ForEach(textures, id: \.self) { texture in
@@ -88,20 +129,37 @@ struct KidBrushBuilderView: View {
                 .padding(.horizontal, 16)
             }
 
-            // ── Contextual Slider ──
+            // ── Contextual Sliders ──
             VStack(spacing: 6) {
                 if selectedTexture == .patternStamp {
                     Slider(value: $stampSpacing, in: 0.5...3.0)
                         .tint(.purple)
                         .padding(.horizontal, 24)
                     HStack {
-                        Text("dense")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text("dense").font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Text("spread")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text("spread").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 28)
+                } else if selectedTexture == .crayon {
+                    // Slider 1: soft ↔ bold
+                    Slider(value: $intensity, in: 0.0...1.0)
+                        .tint(.orange)
+                        .padding(.horizontal, 24)
+                    HStack {
+                        Text("soft").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("bold").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 28)
+                    // Slider 2: tight ↔ spread grain
+                    Slider(value: $grainSpread, in: 0.5...3.0)
+                        .tint(.brown)
+                        .padding(.horizontal, 24)
+                    HStack {
+                        Text("tight grain").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("spread grain").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 28)
                 } else {
@@ -109,18 +167,14 @@ struct KidBrushBuilderView: View {
                         .tint(.purple)
                         .padding(.horizontal, 24)
                     HStack {
-                        Text("soft")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text("soft").font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Text("bold")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text("bold").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 28)
                 }
             }
-            .padding(.top, 20)
+            .padding(.top, 16)
 
             Spacer()
 
@@ -149,6 +203,13 @@ struct KidBrushBuilderView: View {
 
     private func renderPreview(ctx: GraphicsContext) {
         let color = state.selectedColor
+        // shared rng helper — same seed logic as KidBrushPreview / DrawingCanvasView
+        func rng(_ s: Int, _ i: Int) -> CGFloat {
+            let h = (s ^ (i &* 2654435761)) & 0x7FFF_FFFF
+            return CGFloat(h % 10000) / 10000.0
+        }
+        let seed = 42
+
         switch selectedTexture {
         case .crayon:
             let scale = Double((0.4 + intensity * 1.2).clamped(to: 0.1...1.6))
@@ -163,6 +224,17 @@ struct KidBrushBuilderView: View {
                 ctx.stroke(path, with: .color(color.opacity(min(op*scale,1.0))),
                            style: StrokeStyle(lineWidth: brushSize*0.85, lineCap:.round, lineJoin:.round))
             }
+            // Grain stipple scaled by grainSpread
+            let spread = brushSize * 0.45 * grainSpread
+            for (i, pt) in previewPoints.enumerated() where i % 2 == 0 {
+                let si = i / 2
+                let ox = (rng(seed, 500 + si*4)     * 2 - 1) * spread
+                let oy = (rng(seed, 500 + si*4 + 1) * 2 - 1) * spread
+                let r  =  0.5 + rng(seed, 500 + si*4 + 2) * 2.0
+                let op =  0.04 + rng(seed, 500 + si*4 + 3) * 0.18
+                ctx.fill(Ellipse().path(in: CGRect(x: pt.x+ox-r, y: pt.y+oy-r, width: r*2, height: r*2)),
+                         with: .color(color.opacity(op)))
+            }
 
         case .marker:
             let scale = Double((0.4 + intensity * 1.2).clamped(to: 0.1...1.6))
@@ -173,17 +245,21 @@ struct KidBrushBuilderView: View {
                        style: StrokeStyle(lineWidth: brushSize*1.6, lineCap:.round, lineJoin:.round))
 
         case .chalk:
+            // Particle cloud matching DrawingCanvasView.renderChalk
             let scale = Double((0.4 + intensity * 1.2).clamped(to: 0.1...1.6))
-            let offsets: [(CGFloat, CGFloat, Double)] = [
-                (-2.0,-1.5,0.30),(-0.8,-0.5,0.38),(0,0,0.42),(0.7,1.0,0.33),(1.8,-0.5,0.28)
-            ]
-            for (dx, dy, op) in offsets {
-                var path = Path()
-                let pts = previewPoints.map { CGPoint(x: $0.x+dx, y: $0.y+dy) }
-                guard let f = pts.first else { continue }
-                path.move(to: f); pts.dropFirst().forEach { path.addLine(to: $0) }
-                ctx.stroke(path, with: .color(color.opacity(min(op*scale,1.0))),
-                           style: StrokeStyle(lineWidth: brushSize*0.65, lineCap:.round, lineJoin:.round))
+            let cSpread = brushSize * 0.6
+            for (i, pt) in previewPoints.enumerated() {
+                for j in 0..<5 {
+                    let idx = i * 5 + j
+                    let ox  = (rng(seed, idx*4)     * 2 - 1) * cSpread
+                    let oy  = (rng(seed, idx*4 + 1) * 2 - 1) * cSpread
+                    let r   =  1.0 + rng(seed, idx*4 + 2) * 4.0
+                    let op  =  0.08 + rng(seed, idx*4 + 3) * 0.20
+                    ctx.fill(
+                        Ellipse().path(in: CGRect(x: pt.x+ox-r, y: pt.y+oy-r, width: r*2, height: r*2)),
+                        with: .color(color.opacity(min(Double(op)*scale, 1.0)))
+                    )
+                }
             }
 
         case .patternStamp:
@@ -218,7 +294,9 @@ struct KidBrushBuilderView: View {
             icon: selectedTexture.icon,
             baseStyle: selectedTexture,
             patternShape: selectedTexture == .patternStamp ? .star : nil,
-            stampSpacing: selectedTexture == .patternStamp ? stampSpacing : 1.0,
+            stampSpacing: selectedTexture == .patternStamp ? stampSpacing
+                        : selectedTexture == .crayon       ? grainSpread
+                        : 1.0,
             sizeVariation: selectedTexture != .patternStamp ? intensity : 0.0,
             isSystem: false
         )

@@ -72,19 +72,31 @@ struct CodableStroke: Codable {
 struct CodableStampPlacement: Codable {
     let emoji: String
     let x, y, size: Double
+    let opacity: Double
 
     init(_ stamp: StampPlacement) {
-        emoji = stamp.emoji
-        x     = Double(stamp.location.x)
-        y     = Double(stamp.location.y)
-        size  = Double(stamp.size)
+        emoji   = stamp.emoji
+        x       = Double(stamp.location.x)
+        y       = Double(stamp.location.y)
+        size    = Double(stamp.size)
+        opacity = stamp.opacity
+    }
+
+    init(from decoder: Decoder) throws {
+        let c   = try decoder.container(keyedBy: CodingKeys.self)
+        emoji   = try c.decode(String.self,  forKey: .emoji)
+        x       = try c.decode(Double.self,  forKey: .x)
+        y       = try c.decode(Double.self,  forKey: .y)
+        size    = try c.decode(Double.self,  forKey: .size)
+        opacity = try c.decodeIfPresent(Double.self, forKey: .opacity) ?? 1.0
     }
 
     var stampPlacement: StampPlacement {
         StampPlacement(
             emoji:    emoji,
             location: CGPoint(x: x, y: y),
-            size:     CGFloat(size)
+            size:     CGFloat(size),
+            opacity:  opacity
         )
     }
 }

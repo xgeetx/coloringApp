@@ -10,23 +10,13 @@ struct DrawingCanvasView: View {
 
     var body: some View {
         Canvas { ctx, size in
-            // Background fill
+            // 1. Background fill
             ctx.fill(
                 Path(CGRect(origin: .zero, size: size)),
                 with: .color(state.backgroundColor)
             )
 
-            // Committed strokes
-            for stroke in state.strokes {
-                render(stroke: stroke, in: ctx)
-            }
-
-            // In-progress stroke
-            if let live = state.currentStroke {
-                render(stroke: live, in: ctx)
-            }
-
-            // Stamps
+            // 2. Stamps FIRST — strokes and eraser render on top
             for stamp in state.stamps {
                 let fontSize = stamp.size * 0.72
                 let rect = CGRect(
@@ -35,14 +25,42 @@ struct DrawingCanvasView: View {
                     width: stamp.size,
                     height: stamp.size
                 )
-                ctx.draw(
-                    Text(stamp.emoji).font(.system(size: fontSize)),
-                    in: rect
-                )
+                ctx.drawLayer { layerCtx in
+                    layerCtx.opacity = stamp.opacity
+                    layerCtx.draw(
+                        Text(stamp.emoji).font(.system(size: fontSize)),
+                        in: rect
+                    )
+                }
+            }
+
+            // 3. Committed strokes (on top of stamps)
+            for stroke in state.strokes {
+                render(stroke: stroke, in: ctx)
+            }
+
+            // 4. In-progress stroke (topmost)
+            if let live = state.currentStroke {
+                render(stroke: live, in: ctx)
             }
         }
         .contentShape(Rectangle())
         .gesture(drawGesture.simultaneously(with: pinchGesture))
+        .overlay {
+            if isPinching {
+                if state.isStampMode {
+                    Text(state.selectedStamp)
+                        .font(.system(size: state.brushSize * 2.8 * 0.72))
+                        .opacity(0.5)
+                        .allowsHitTesting(false)
+                } else {
+                    Circle()
+                        .stroke(Color.accentColor.opacity(0.7), lineWidth: 2)
+                        .frame(width: state.brushSize, height: state.brushSize)
+                        .allowsHitTesting(false)
+                }
+            }
+        }
     }
 
     // MARK: - Gesture
@@ -53,6 +71,22 @@ struct DrawingCanvasView: View {
                 guard !isPinching else { return }
                 if state.isStampMode {
                     return
+                }
+                // Eraser hit-test: remove any stamp under the eraser tip
+                if state.isEraserMode {
+                    let r = state.brushSize / 2
+                    for stamp in state.stamps {
+                        let half = stamp.size / 2
+                        let hitRect = CGRect(
+                            x: stamp.location.x - half - r,
+                            y: stamp.location.y - half - r,
+                            width: stamp.size + r * 2,
+                            height: stamp.size + r * 2
+                        )
+                        if hitRect.contains(value.location) {
+                            state.removeStamp(id: stamp.id)
+                        }
+                    }
                 }
                 if state.currentStroke == nil {
                     dismissFlyout?()
@@ -144,7 +178,8 @@ struct DrawingCanvasView: View {
         }
         // Paper grain stipple — dots scattered within stroke width
         // Uses index range 500+ to avoid collision with pass jitter indices (0–4, 100–104)
-        let spread = stroke.brushSize * 0.45
+        // For user brushes, stampSpacing controls grain spread (0.5=tight, 1.0=default, 3.0=chunky)
+        let spread = stroke.brushSize * (stroke.brush.isSystem ? 0.45 : 0.45 * stroke.brush.stampSpacing)
         let hash   = stroke.id.hashValue
         for (i, pt) in stroke.points.enumerated() where i % 2 == 0 {
             let si = i / 2

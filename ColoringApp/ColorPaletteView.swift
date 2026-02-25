@@ -7,19 +7,7 @@ struct ColorPaletteView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            ForEach(CrayolaColor.palette) { crayola in
-                ColorSwatchButton(
-                    crayola: crayola,
-                    isSelected: state.selectedColor == crayola.color,
-                    onTap: {
-                        state.selectedColor = crayola.color
-                        state.isStampMode  = false
-                        state.isEraserMode = false
-                    }
-                )
-            }
-
-            // Custom color well — opens system color picker
+            // Custom color well — always pinned left, never scrolls off screen
             ColorPicker("", selection: Binding(
                 get: { state.selectedColor },
                 set: { newColor in
@@ -31,6 +19,24 @@ struct ColorPaletteView: View {
             .labelsHidden()
             .frame(width: 36, height: 36)
             .padding(.horizontal, 4)
+
+            // 16 preset swatches — scroll horizontally so portrait never clips
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(CrayolaColor.palette) { crayola in
+                        ColorSwatchButton(
+                            crayola: crayola,
+                            isSelected: state.selectedColor == crayola.color,
+                            onTap: {
+                                state.selectedColor = crayola.color
+                                state.isStampMode  = false
+                                state.isEraserMode = false
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
