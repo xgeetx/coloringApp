@@ -1,4 +1,6 @@
 import SwiftUI
+import SpellingFun
+import TraceFun
 
 // MARK: - App Descriptor
 

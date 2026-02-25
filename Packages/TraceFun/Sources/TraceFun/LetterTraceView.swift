@@ -4,11 +4,13 @@ import AVFoundation
 
 // MARK: - Root
 
-struct LetterTraceView: View {
+public struct LetterTraceView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = LetterTraceViewModel()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ZStack {
             LinearGradient(
                 colors: [
@@ -694,4 +696,18 @@ struct TraceCelebView: View {
 
 #Preview {
     LetterTraceView()
+}
+
+// MARK: - Private Extensions (inlined from main target's Models.swift)
+
+private extension Color {
+    init(r: Int, g: Int, b: Int) {
+        self.init(
+            .sRGB,
+            red:   Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: 1
+        )
+    }
 }

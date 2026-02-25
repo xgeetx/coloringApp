@@ -3,11 +3,13 @@ import Speech
 import AVFoundation
 import UIKit
 
-struct SpellingView: View {
+public struct SpellingView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = SpellingViewModel()
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         ZStack {
             LinearGradient(
                 colors: [
@@ -725,4 +727,24 @@ struct KeyboardDisplayPanel: View {
 
 #Preview {
     SpellingView()
+}
+
+// MARK: - Private Extensions (inlined from main target's Models.swift)
+
+private extension Color {
+    init(r: Int, g: Int, b: Int) {
+        self.init(
+            .sRGB,
+            red:   Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: 1
+        )
+    }
+}
+
+private extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        min(max(self, range.lowerBound), range.upperBound)
+    }
 }
