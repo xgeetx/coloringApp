@@ -4,9 +4,7 @@ import SwiftUI
 
 struct BrushesFlyoutView: View {
     @ObservedObject var state: DrawingState
-    @State private var showingBuilder    = false
-    @State private var showingPoolPicker = false
-    @State private var targetSlot: Int   = 0
+    @State private var showingBuilder = false
 
     var body: some View {
         ScrollView {
@@ -36,67 +34,50 @@ struct BrushesFlyoutView: View {
 
                 Divider()
 
-                // ── My Brushes (Quick Slots) ──
-                VStack(spacing: 8) {
-                    Text("My Brushes")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-
-                    ForEach(0..<3, id: \.self) { slot in
-                        SlotButton(
-                            brush: brushForSlot(slot),
-                            isSelected: isSlotSelected(slot),
-                            onTap:      { selectSlot(slot) },
-                            onLongPress: {
-                                targetSlot        = slot
-                                showingPoolPicker = true
-                            }
-                        )
-                    }
-
-                    Button(action: { showingBuilder = true }) {
-                        Label("Build Brush", systemImage: "plus.circle")
+                // ── My Brushes ──
+                if state.brushPool.contains(where: { !$0.isSystem }) {
+                    VStack(spacing: 8) {
+                        Text("My Brushes")
                             .font(.system(size: 13, weight: .semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(Color.blue.opacity(0.12))
+                            .foregroundStyle(.secondary)
+
+                        ForEach(state.brushPool.filter { !$0.isSystem }) { brush in
+                            BrushDescriptorButton(
+                                icon: brush.icon,
+                                label: brush.name,
+                                isSelected: !state.isStampMode && !state.isEraserMode
+                                            && state.selectedBrush.id == brush.id,
+                                onTap: {
+                                    state.selectedBrush = brush
+                                    state.isStampMode   = false
+                                    state.isEraserMode  = false
+                                }
                             )
+                        }
                     }
-                    .buttonStyle(.plain)
+
+                    Divider()
                 }
+
+                Button(action: { showingBuilder = true }) {
+                    Label("Build Brush", systemImage: "plus.circle")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color.blue.opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
 
                 Spacer()
             }
             .padding(10)
         }
-        .fullScreenCover(isPresented: $showingBuilder) {
+        .sheet(isPresented: $showingBuilder) {
             BrushBuilderView(state: state)
         }
-        .sheet(isPresented: $showingPoolPicker) {
-            PoolPickerView(state: state, slot: targetSlot)
-        }
-    }
-
-    // MARK: - Helpers
-
-    private func brushForSlot(_ slot: Int) -> BrushDescriptor? {
-        guard let id = state.slotAssignments[slot] else { return nil }
-        return state.brushPool.first { $0.id == id }
-    }
-
-    private func isSlotSelected(_ slot: Int) -> Bool {
-        guard !state.isStampMode && !state.isEraserMode,
-              let brush = brushForSlot(slot) else { return false }
-        return state.selectedBrush.id == brush.id
-    }
-
-    private func selectSlot(_ slot: Int) {
-        guard let brush = brushForSlot(slot) else { return }
-        state.selectedBrush = brush
-        state.isStampMode   = false
-        state.isEraserMode  = false
     }
 }
 

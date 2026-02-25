@@ -43,7 +43,15 @@ enum AppRegistry {
             isAvailable: true,
             makeRootView: { AnyView(ContentView()) }
         ),
-        .placeholder(id: "app2", icon: "🎵", displayName: "Music Maker"),
+        MiniAppDescriptor(
+            id: "kidsmode",
+            displayName: "Kids Mode",
+            subtitle: "Paint & Play!",
+            icon: "🌈",
+            tileColor: Color(r: 180, g: 230, b: 255),
+            isAvailable: true,
+            makeRootView: { AnyView(KidContentView()) }
+        ),
         .placeholder(id: "app3", icon: "🧩", displayName: "Puzzle Play"),
         .placeholder(id: "app4", icon: "📖", displayName: "Story Time"),
     ]

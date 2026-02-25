@@ -40,8 +40,8 @@ struct LeftStripView: View {
         .frame(width: 44)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.white.opacity(0.75))
-                .shadow(color: .black.opacity(0.10), radius: 6)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.18), radius: 8, x: 2, y: 2)
         )
     }
 }
@@ -58,7 +58,7 @@ struct StripIconButton: View {
         Button(action: onTap) {
             VStack(spacing: 3) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 20, weight: .medium))
+                    .font(.system(size: 22, weight: .semibold))
                 Text(label)
                     .font(.system(size: 9, weight: .semibold))
             }

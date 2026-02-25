@@ -27,8 +27,8 @@ struct RightStripView: View {
         .frame(width: 44)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(.white.opacity(0.75))
-                .shadow(color: .black.opacity(0.10), radius: 6)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.18), radius: 8, x: 2, y: 2)
         )
     }
 }
