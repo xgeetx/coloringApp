@@ -210,7 +210,8 @@ struct KidBrushStripView: View {
                     KidBrushButton(
                         brush: brush,
                         isSelected: !state.isStampMode && !state.isEraserMode
-                                    && state.selectedBrush.id == brush.id
+                                    && state.selectedBrush.id == brush.id,
+                        color: state.selectedColor
                     ) {
                         state.selectedBrush = brush
                         state.isStampMode   = false
@@ -258,13 +259,16 @@ struct KidBrushStripView: View {
 struct KidBrushButton: View {
     let brush: BrushDescriptor
     let isSelected: Bool
+    let color: Color
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
-                Text(brush.icon)
-                    .font(.system(size: 32))
+                KidBrushPreview(brush: brush, color: color)
+                    .frame(height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .padding(.horizontal, 4)
                 Text(brush.name)
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(isSelected ? Color.white : Color.primary)
@@ -379,6 +383,83 @@ extension View {
             self.presentationDragIndicator(.visible)
         } else {
             self
+        }
+    }
+}
+
+// MARK: - Kid Brush Texture Preview
+
+struct KidBrushPreview: View {
+    let brush: BrushDescriptor
+    let color: Color
+
+    var body: some View {
+        Canvas { ctx, size in
+            let pts = makeWave(in: size)
+            let sz: CGFloat = size.height * 0.38
+            let scale = brush.isSystem ? 1.0 : Double((0.4 + brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
+            switch brush.baseStyle {
+            case .crayon:  drawCrayon(ctx: ctx, pts: pts, sz: sz, scale: scale)
+            case .marker:  drawMarker(ctx: ctx, pts: pts, sz: sz, scale: scale)
+            case .chalk:   drawChalk(ctx: ctx, pts: pts, sz: sz, scale: scale)
+            case .patternStamp: drawStamps(ctx: ctx, pts: pts, sz: sz)
+            }
+        }
+    }
+
+    private func makeWave(in size: CGSize) -> [CGPoint] {
+        (0..<30).map { i in
+            let t = CGFloat(i) / 29
+            return CGPoint(
+                x: 6 + t * (size.width - 12),
+                y: size.height / 2 + sin(t * .pi * 2.5) * (size.height * 0.22)
+            )
+        }
+    }
+
+    private func drawCrayon(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat, scale: Double) {
+        let passes: [(CGFloat, CGFloat, Double)] = [(-1.5,-1.0,0.50),(0,0,0.65),(1.5,1.0,0.45)]
+        for (dx, dy, op) in passes {
+            var path = Path()
+            let shifted = pts.map { CGPoint(x: $0.x + dx, y: $0.y + dy) }
+            guard let f = shifted.first else { continue }
+            path.move(to: f)
+            shifted.dropFirst().forEach { path.addLine(to: $0) }
+            ctx.stroke(path, with: .color(color.opacity(min(op * scale, 1.0))),
+                       style: StrokeStyle(lineWidth: sz * 0.85, lineCap: .round, lineJoin: .round))
+        }
+    }
+
+    private func drawMarker(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat, scale: Double) {
+        var path = Path()
+        guard let f = pts.first else { return }
+        path.move(to: f)
+        pts.dropFirst().forEach { path.addLine(to: $0) }
+        ctx.stroke(path, with: .color(color.opacity(min(0.72 * scale, 1.0))),
+                   style: StrokeStyle(lineWidth: sz * 1.6, lineCap: .round, lineJoin: .round))
+    }
+
+    private func drawChalk(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat, scale: Double) {
+        let passes: [(CGFloat, CGFloat, Double)] = [(-1.5,-1.0,0.30),(0,0,0.38),(1.2,0.8,0.28)]
+        for (dx, dy, op) in passes {
+            var path = Path()
+            let shifted = pts.map { CGPoint(x: $0.x + dx, y: $0.y + dy) }
+            guard let f = shifted.first else { continue }
+            path.move(to: f)
+            shifted.dropFirst().forEach { path.addLine(to: $0) }
+            ctx.stroke(path, with: .color(color.opacity(min(op * scale, 1.0))),
+                       style: StrokeStyle(lineWidth: sz * 0.65, lineCap: .round, lineJoin: .round))
+        }
+    }
+
+    private func drawStamps(ctx: GraphicsContext, pts: [CGPoint], sz: CGFloat) {
+        let shape = brush.patternShape ?? .star
+        let spacing = brush.stampSpacing * sz
+        var last: CGPoint? = nil
+        for pt in pts {
+            if let l = last, hypot(pt.x - l.x, pt.y - l.y) < spacing { continue }
+            last = pt
+            ctx.fill(shape.path(center: pt, size: sz), with: .color(color))
         }
     }
 }
