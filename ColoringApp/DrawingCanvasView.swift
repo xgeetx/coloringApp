@@ -165,30 +165,45 @@ struct DrawingCanvasView: View {
         let opacityScale = stroke.brush.isSystem
             ? 1.0
             : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
-        var path = Path()
         guard let first = stroke.points.first else { return }
-        path.move(to: first.location)
 
         if stroke.points.count == 1 {
-            // Dot
+            // Dot: halo ring then solid fill
             let r = stroke.brushSize / 2
-            let rect = CGRect(x: first.location.x - r, y: first.location.y - r, width: stroke.brushSize, height: stroke.brushSize)
-            ctx.fill(Ellipse().path(in: rect), with: .color(stroke.color.opacity(min(0.75 * opacityScale, 1.0))))
+            ctx.fill(
+                Ellipse().path(in: CGRect(x: first.location.x - r * 1.6,
+                                          y: first.location.y - r * 1.6,
+                                          width: stroke.brushSize * 1.6 * 2,
+                                          height: stroke.brushSize * 1.6 * 2)),
+                with: .color(stroke.color.opacity(0.08))
+            )
+            ctx.fill(
+                Ellipse().path(in: CGRect(x: first.location.x - r,
+                                          y: first.location.y - r,
+                                          width: stroke.brushSize,
+                                          height: stroke.brushSize)),
+                with: .color(stroke.color.opacity(min(0.82 * opacityScale, 1.0)))
+            )
             return
         }
 
-        for pt in stroke.points.dropFirst() {
-            path.addLine(to: pt.location)
-        }
-        ctx.stroke(
-            path,
-            with: .color(stroke.color.opacity(min(0.72 * opacityScale, 1.0))),
-            style: StrokeStyle(
-                lineWidth: stroke.brushSize * 1.6,
-                lineCap: .round,
-                lineJoin: .round
-            )
-        )
+        // Halo pass — wide, very transparent (ink bleed)
+        var haloPath = Path()
+        haloPath.move(to: first.location)
+        for pt in stroke.points.dropFirst() { haloPath.addLine(to: pt.location) }
+        ctx.stroke(haloPath,
+                   with: .color(stroke.color.opacity(0.08)),
+                   style: StrokeStyle(lineWidth: stroke.brushSize * 2.2,
+                                      lineCap: .round, lineJoin: .round))
+
+        // Solid pass — clean, saturated, no texture
+        var path = Path()
+        path.move(to: first.location)
+        for pt in stroke.points.dropFirst() { path.addLine(to: pt.location) }
+        ctx.stroke(path,
+                   with: .color(stroke.color.opacity(min(0.82 * opacityScale, 1.0))),
+                   style: StrokeStyle(lineWidth: stroke.brushSize * 1.5,
+                                      lineCap: .round, lineJoin: .round))
     }
 
     private func renderHardErase(_ stroke: Stroke, in ctx: GraphicsContext) {
