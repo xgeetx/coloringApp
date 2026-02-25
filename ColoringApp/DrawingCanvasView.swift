@@ -4,6 +4,7 @@ import SwiftUI
 
 struct DrawingCanvasView: View {
     @ObservedObject var state: DrawingState
+    var dismissFlyout: (() -> Void)? = nil
     @State private var lastMagnification: CGFloat = 1.0
     @State private var isPinching: Bool = false
 
@@ -54,6 +55,7 @@ struct DrawingCanvasView: View {
                     return
                 }
                 if state.currentStroke == nil {
+                    dismissFlyout?()
                     state.beginStroke(at: value.location)
                 } else {
                     state.continueStroke(at: value.location)

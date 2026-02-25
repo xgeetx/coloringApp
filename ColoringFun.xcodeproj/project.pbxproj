@@ -21,6 +21,9 @@
 		DC01ED02FE03AF04BA05CB06 /* HubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC01DD02EE03FF04AA05BB06 /* HubView.swift */; };
 		FE01AF02BA03CB04DC05ED06 /* AppRequestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */; };
 		22A2B2C2D2E2F2A3B3C3D3E3 /* DrawingPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11A1B1C1D1E1F1A2B2C2D2E2 /* DrawingPersistence.swift */; };
+		B2F2C3D4E5F6A7B8C9D0E1F2 /* FlyoutContainerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F1B2C3D4E5F6A7B8C9D0E1 /* FlyoutContainerView.swift */; };
+		D4F4E5F6A7B8C9D0E1F2A3B4 /* LeftStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F3D4E5F6A7B8C9D0E1F2A3 /* LeftStripView.swift */; };
+		F6A6B7C8D9E0F1A2B3C4D5E6 /* RightStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +42,9 @@
 		CC01DD02EE03FF04AA05BB06 /* HubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HubView.swift; sourceTree = "<group>"; };
 		EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRequestView.swift; sourceTree = "<group>"; };
 		11A1B1C1D1E1F1A2B2C2D2E2 /* DrawingPersistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingPersistence.swift; sourceTree = "<group>"; };
+		A1F1B2C3D4E5F6A7B8C9D0E1 /* FlyoutContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlyoutContainerView.swift; sourceTree = "<group>"; };
+		C3F3D4E5F6A7B8C9D0E1F2A3 /* LeftStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeftStripView.swift; sourceTree = "<group>"; };
+		E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightStripView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,6 +75,9 @@
 				CC01DD02EE03FF04AA05BB06 /* HubView.swift */,
 				EE01FF02AA03BB04CC05DD06 /* AppRequestView.swift */,
 				11A1B1C1D1E1F1A2B2C2D2E2 /* DrawingPersistence.swift */,
+				A1F1B2C3D4E5F6A7B8C9D0E1 /* FlyoutContainerView.swift */,
+				C3F3D4E5F6A7B8C9D0E1F2A3 /* LeftStripView.swift */,
+				E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */,
 			);
 			path = ColoringApp;
 			sourceTree = "<group>";
@@ -170,6 +179,9 @@
 				DC01ED02FE03AF04BA05CB06 /* HubView.swift in Sources */,
 				FE01AF02BA03CB04DC05ED06 /* AppRequestView.swift in Sources */,
 				22A2B2C2D2E2F2A3B3C3D3E3 /* DrawingPersistence.swift in Sources */,
+				B2F2C3D4E5F6A7B8C9D0E1F2 /* FlyoutContainerView.swift in Sources */,
+				D4F4E5F6A7B8C9D0E1F2A3B4 /* LeftStripView.swift in Sources */,
+				F6A6B7C8D9E0F1A2B3C4D5E6 /* RightStripView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

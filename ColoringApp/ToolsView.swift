@@ -1,16 +1,12 @@
 import SwiftUI
 
-// MARK: - Left Panel: Brush Tools + Size
+// MARK: - Brushes Flyout Content
 
-struct BrushToolsView: View {
+struct BrushesFlyoutView: View {
     @ObservedObject var state: DrawingState
     @State private var showingBuilder    = false
     @State private var showingPoolPicker = false
     @State private var targetSlot: Int   = 0
-
-    private let sizes: [(String, CGFloat)] = [
-        ("S", 10), ("M", 22), ("L", 40), ("XL", 60)
-    ]
 
     var body: some View {
         ScrollView {
@@ -36,12 +32,11 @@ struct BrushToolsView: View {
                             }
                         )
                     }
-
                 }
 
                 Divider()
 
-                // ── My Brushes ──
+                // ── My Brushes (Quick Slots) ──
                 VStack(spacing: 8) {
                     Text("My Brushes")
                         .font(.system(size: 13, weight: .semibold))
@@ -72,60 +67,10 @@ struct BrushToolsView: View {
                     .buttonStyle(.plain)
                 }
 
-                Divider()
-
-                // ── Size Picker ──
-                VStack(spacing: 8) {
-                    Text("Size")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-
-                    ForEach(sizes, id: \.0) { label, size in
-                        SizeButton(
-                            label: label,
-                            size: size,
-                            isSelected: state.brushSize == size,
-                            onTap: { state.brushSize = size }
-                        )
-                    }
-                }
-
-                Divider()
-
-                // ── Opacity ──
-                VStack(spacing: 8) {
-                    HStack {
-                        Text("Opacity")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(Int(state.brushOpacity * 100))%")
-                            .font(.system(size: 12, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                    Slider(value: $state.brushOpacity, in: 0.1...1.0, step: 0.05)
-                        .tint(.purple)
-                        .onChange(of: state.brushOpacity) { _ in state.persist() }
-
-                    // Preview swatch
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(state.selectedColor.opacity(state.brushOpacity))
-                        .frame(height: 20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
-                        )
-                }
-
                 Spacer()
             }
             .padding(10)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.white.opacity(0.85))
-                .shadow(color: .black.opacity(0.12), radius: 6)
-        )
         .fullScreenCover(isPresented: $showingBuilder) {
             BrushBuilderView(state: state)
         }
@@ -152,6 +97,88 @@ struct BrushToolsView: View {
         state.selectedBrush = brush
         state.isStampMode   = false
         state.isEraserMode  = false
+    }
+}
+
+// MARK: - Size Flyout Content
+
+struct SizeFlyoutView: View {
+    @ObservedObject var state: DrawingState
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Brush Size")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.top, 8)
+
+            // Live preview dot
+            ZStack {
+                Circle()
+                    .fill(Color.gray.opacity(0.12))
+                    .frame(width: 80, height: 80)
+                Circle()
+                    .fill(state.selectedColor)
+                    .frame(
+                        width: min(state.brushSize * 0.85, 74),
+                        height: min(state.brushSize * 0.85, 74)
+                    )
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: state.brushSize)
+            }
+
+            Text("\(Int(state.brushSize))pt")
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
+                .foregroundStyle(.secondary)
+
+            // Vertical slider (rotated)
+            Slider(value: $state.brushSize, in: 6...80, step: 1)
+                .tint(.purple)
+                .rotationEffect(.degrees(-90))
+                .frame(width: 200)
+                .frame(height: 220)
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+    }
+}
+
+// MARK: - Opacity Flyout Content
+
+struct OpacityFlyoutView: View {
+    @ObservedObject var state: DrawingState
+
+    var body: some View {
+        VStack(spacing: 20) {
+            HStack {
+                Text("Opacity")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(state.brushOpacity * 100))%")
+                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.top, 8)
+
+            // Live preview swatch
+            RoundedRectangle(cornerRadius: 12)
+                .fill(state.selectedColor.opacity(state.brushOpacity))
+                .frame(height: 60)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+                .animation(.easeOut(duration: 0.15), value: state.brushOpacity)
+
+            Slider(value: $state.brushOpacity, in: 0.1...1.0, step: 0.05)
+                .tint(.purple)
+                .onChange(of: state.brushOpacity) { _ in state.persist() }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
     }
 }
 
@@ -280,37 +307,5 @@ struct PoolPickerView: View {
             }
         }
         .foregroundStyle(.primary)
-    }
-}
-
-// MARK: - SizeButton
-
-struct SizeButton: View {
-    let label: String
-    let size: CGFloat
-    let isSelected: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 6) {
-                Circle()
-                    .fill(Color.primary)
-                    .frame(width: min(size * 0.5, 26), height: min(size * 0.5, 26))
-                Text(label)
-                    .font(.system(size: 14, weight: .semibold))
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-            .background(
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(isSelected ? Color.accentColor.opacity(0.2) : Color.clear)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .strokeBorder(isSelected ? Color.accentColor : Color.clear, lineWidth: 2)
-                    )
-            )
-        }
-        .buttonStyle(.plain)
     }
 }

@@ -4,6 +4,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var state = DrawingState()
+    @State private var activeFlyout: FlyoutPanel? = nil
 
     var body: some View {
         ZStack {
@@ -26,29 +27,33 @@ struct ContentView: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
 
-                // ── Main row: Tools | Canvas | Stamps ──
-                HStack(alignment: .top, spacing: 10) {
+                // ── Main row: Left Strip | Canvas | Right Strip ──
+                HStack(alignment: .top, spacing: 8) {
 
-                    // Left: brush tools
-                    BrushToolsView(state: state)
-                        .frame(width: 100)
+                    // Left icon strip
+                    LeftStripView(state: state, activeFlyout: $activeFlyout)
 
-                    // Center: drawing canvas
+                    // Center: canvas + flyout overlays
                     ZStack {
-                        DrawingCanvasView(state: state)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .strokeBorder(
-                                        LinearGradient(
-                                            colors: [.white.opacity(0.8), .white.opacity(0.2)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 3
-                                    )
-                            )
-                            .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 4)
+                        // Drawing canvas
+                        DrawingCanvasView(state: state, dismissFlyout: {
+                            withAnimation(.easeIn(duration: 0.2)) {
+                                activeFlyout = nil
+                            }
+                        })
+                        .clipShape(RoundedRectangle(cornerRadius: 20))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [.white.opacity(0.8), .white.opacity(0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 3
+                                )
+                        )
+                        .shadow(color: .black.opacity(0.18), radius: 12, x: 0, y: 4)
 
                         // Stamp mode indicator banner
                         if state.isStampMode {
@@ -69,11 +74,37 @@ struct ContentView: View {
                                 Spacer()
                             }
                         }
-                    }
 
-                    // Right: stamps
-                    StampsPanelView(state: state)
-                        .frame(width: 120)
+                        // Left flyout overlay (.brushes / .size / .opacity)
+                        if let panel = activeFlyout, panel != .stamps {
+                            FlyoutContainerView(side: .left, onDismiss: {
+                                withAnimation(.easeIn(duration: 0.2)) { activeFlyout = nil }
+                            }) {
+                                leftFlyoutContent(panel)
+                            }
+                            .frame(width: 260)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .transition(.move(edge: .leading))
+                        }
+
+                        // Right flyout overlay (.stamps)
+                        if activeFlyout == .stamps {
+                            FlyoutContainerView(side: .right, onDismiss: {
+                                withAnimation(.easeIn(duration: 0.2)) { activeFlyout = nil }
+                            }) {
+                                StampsFlyoutView(state: state, onDismiss: {
+                                    withAnimation(.easeIn(duration: 0.2)) { activeFlyout = nil }
+                                })
+                            }
+                            .frame(width: 260)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                            .transition(.move(edge: .trailing))
+                        }
+                    }
+                    .animation(.spring(response: 0.35, dampingFraction: 0.75), value: activeFlyout)
+
+                    // Right icon strip
+                    RightStripView(state: state, activeFlyout: $activeFlyout)
                 }
                 .padding(.horizontal, 12)
 
@@ -82,6 +113,22 @@ struct ContentView: View {
                     .padding(.horizontal, 12)
                     .padding(.bottom, 10)
             }
+        }
+    }
+
+    // MARK: - Left Flyout Content Switch
+
+    @ViewBuilder
+    private func leftFlyoutContent(_ panel: FlyoutPanel) -> some View {
+        switch panel {
+        case .brushes:
+            BrushesFlyoutView(state: state)
+        case .size:
+            SizeFlyoutView(state: state)
+        case .opacity:
+            OpacityFlyoutView(state: state)
+        case .stamps:
+            EmptyView()
         }
     }
 }

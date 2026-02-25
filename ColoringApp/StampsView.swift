@@ -1,9 +1,10 @@
 import SwiftUI
 
-// MARK: - Right Panel: Stamp Clip Art
+// MARK: - Stamps Flyout Content
 
-struct StampsPanelView: View {
+struct StampsFlyoutView: View {
     @ObservedObject var state: DrawingState
+    let onDismiss: () -> Void
     @State private var selectedCategoryIndex = 0
 
     var body: some View {
@@ -46,6 +47,7 @@ struct StampsPanelView: View {
                             onTap: {
                                 state.selectedStamp = emoji
                                 state.isStampMode = true
+                                onDismiss()
                             }
                         )
                     }
@@ -56,11 +58,6 @@ struct StampsPanelView: View {
             Spacer(minLength: 0)
         }
         .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.white.opacity(0.85))
-                .shadow(color: .black.opacity(0.12), radius: 6)
-        )
         .onChange(of: selectedCategoryIndex) { newIndex in
             let category = allStampCategories[newIndex]
             if let first = category.stamps.first {

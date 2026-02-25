@@ -1,5 +1,11 @@
 import SwiftUI
 
+// MARK: - Flyout Panel
+
+enum FlyoutPanel: Equatable {
+    case brushes, size, opacity, stamps
+}
+
 // MARK: - Crayola 16 Colors
 
 struct CrayolaColor: Identifiable, Hashable {
