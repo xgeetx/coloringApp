@@ -1,0 +1,11 @@
+{
+  "planPath": "docs/plans/2026-02-25-brush-rendering-and-kid-sliders.md",
+  "tasks": [
+    {"id": 8, "subject": "Task 1: Rewrite renderCrayon — add stipple grain layer", "status": "pending"},
+    {"id": 9, "subject": "Task 2: Rewrite renderMarker — halo + clean solid pass", "status": "pending"},
+    {"id": 10, "subject": "Task 3: Rewrite renderChalk — pure particle cloud", "status": "pending"},
+    {"id": 11, "subject": "Task 4: Add Size + Opacity sliders to kid mode top bar", "status": "pending"},
+    {"id": 12, "subject": "Task 5: Build and push", "status": "pending", "blockedBy": [8, 9, 10, 11]}
+  ],
+  "lastUpdated": "2026-02-25T00:00:00Z"
+}
