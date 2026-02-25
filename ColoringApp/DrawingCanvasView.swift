@@ -233,23 +233,22 @@ struct DrawingCanvasView: View {
         let opacityScale = stroke.brush.isSystem
             ? 1.0
             : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
-        let offsets: [(CGFloat, CGFloat, Double)] = [
-            (-2.0, -1.5, 0.30),
-            (-0.8, -0.5, 0.38),
-            ( 0.0,  0.0, 0.42),
-            ( 0.7,  1.0, 0.33),
-            ( 1.8, -0.5, 0.28),
-        ]
-        for (dx, dy, opacity) in offsets {
-            var path = Path()
-            let pts = stroke.points.map { CGPoint(x: $0.location.x + dx, y: $0.location.y + dy) }
-            guard let first = pts.first else { continue }
-            path.move(to: first)
-            for pt in pts.dropFirst() { path.addLine(to: pt) }
-            ctx.stroke(path,
-                       with: .color(stroke.color.opacity(min(opacity * opacityScale, 1.0))),
-                       style: StrokeStyle(lineWidth: stroke.brushSize * 0.65,
-                                          lineCap: .round, lineJoin: .round))
+        let spread = stroke.brushSize * 0.6
+        let hash   = stroke.id.hashValue
+        for (i, pt) in stroke.points.enumerated() {
+            for j in 0..<5 {
+                let idx = i * 5 + j
+                let ox  = (deterministicJitter(index: idx * 4,     strokeHash: hash) * 2 - 1) * spread
+                let oy  = (deterministicJitter(index: idx * 4 + 1, strokeHash: hash) * 2 - 1) * spread
+                let r   =  1.0 + deterministicJitter(index: idx * 4 + 2, strokeHash: hash) * 4.0
+                let op  =  0.08 + deterministicJitter(index: idx * 4 + 3, strokeHash: hash) * 0.20
+                let x   = pt.location.x + ox
+                let y   = pt.location.y + oy
+                ctx.fill(
+                    Ellipse().path(in: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
+                    with: .color(stroke.color.opacity(min(op * opacityScale, 1.0)))
+                )
+            }
         }
     }
 
