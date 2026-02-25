@@ -112,7 +112,9 @@ struct DrawingCanvasView: View {
     }
 
     private func renderCrayon(_ stroke: Stroke, in ctx: GraphicsContext) {
-        // 5 passes: offset + varying opacity creates wax texture
+        let opacityScale = stroke.brush.isSystem
+            ? 1.0
+            : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
         let offsets: [(CGFloat, CGFloat, Double)] = [
             (-2.5, -1.5, 0.50),
             (-1.0, -0.5, 0.65),
@@ -132,7 +134,7 @@ struct DrawingCanvasView: View {
             for pt in pts.dropFirst() { path.addLine(to: pt) }
             ctx.stroke(
                 path,
-                with: .color(stroke.color.opacity(opacity)),
+                with: .color(stroke.color.opacity(min(opacity * opacityScale, 1.0))),
                 style: StrokeStyle(
                     lineWidth: stroke.brushSize * 0.85,
                     lineCap: .round,
@@ -143,6 +145,9 @@ struct DrawingCanvasView: View {
     }
 
     private func renderMarker(_ stroke: Stroke, in ctx: GraphicsContext) {
+        let opacityScale = stroke.brush.isSystem
+            ? 1.0
+            : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
         var path = Path()
         guard let first = stroke.points.first else { return }
         path.move(to: first.location)
@@ -151,7 +156,7 @@ struct DrawingCanvasView: View {
             // Dot
             let r = stroke.brushSize / 2
             let rect = CGRect(x: first.location.x - r, y: first.location.y - r, width: stroke.brushSize, height: stroke.brushSize)
-            ctx.fill(Ellipse().path(in: rect), with: .color(stroke.color.opacity(0.75)))
+            ctx.fill(Ellipse().path(in: rect), with: .color(stroke.color.opacity(min(0.75 * opacityScale, 1.0))))
             return
         }
 
@@ -160,7 +165,7 @@ struct DrawingCanvasView: View {
         }
         ctx.stroke(
             path,
-            with: .color(stroke.color.opacity(0.72)),
+            with: .color(stroke.color.opacity(min(0.72 * opacityScale, 1.0))),
             style: StrokeStyle(
                 lineWidth: stroke.brushSize * 1.6,
                 lineCap: .round,
@@ -193,6 +198,9 @@ struct DrawingCanvasView: View {
     }
 
     private func renderChalk(_ stroke: Stroke, in ctx: GraphicsContext) {
+        let opacityScale = stroke.brush.isSystem
+            ? 1.0
+            : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
         let offsets: [(CGFloat, CGFloat, Double)] = [
             (-2.0, -1.5, 0.30),
             (-0.8, -0.5, 0.38),
@@ -207,7 +215,7 @@ struct DrawingCanvasView: View {
             path.move(to: first)
             for pt in pts.dropFirst() { path.addLine(to: pt) }
             ctx.stroke(path,
-                       with: .color(stroke.color.opacity(opacity)),
+                       with: .color(stroke.color.opacity(min(opacity * opacityScale, 1.0))),
                        style: StrokeStyle(lineWidth: stroke.brushSize * 0.65,
                                           lineCap: .round, lineJoin: .round))
         }
