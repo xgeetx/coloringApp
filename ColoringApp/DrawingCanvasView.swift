@@ -70,17 +70,21 @@ struct DrawingCanvasView: View {
     private func render(stroke: Stroke, in ctx: GraphicsContext) {
         guard !stroke.points.isEmpty else { return }
 
-        // Eraser always hard-erases at full opacity
+        // Eraser always hard-erases at full opacity (bypass layer)
         if stroke.brush.id == BrushDescriptor.eraser.id {
             renderHardErase(stroke, in: ctx)
             return
         }
 
-        switch stroke.brush.baseStyle {
-        case .crayon:       renderCrayon(stroke, in: ctx)
-        case .marker:       renderMarker(stroke, in: ctx)
-        case .chalk:        renderChalk(stroke, in: ctx)
-        case .patternStamp: renderPatternStamp(stroke, in: ctx)
+        // Apply per-stroke opacity via a composited layer
+        ctx.drawLayer { layerCtx in
+            layerCtx.opacity = stroke.opacity
+            switch stroke.brush.baseStyle {
+            case .crayon:       renderCrayon(stroke, in: layerCtx)
+            case .marker:       renderMarker(stroke, in: layerCtx)
+            case .chalk:        renderChalk(stroke, in: layerCtx)
+            case .patternStamp: renderPatternStamp(stroke, in: layerCtx)
+            }
         }
     }
 
