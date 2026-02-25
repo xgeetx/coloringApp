@@ -1,5 +1,5 @@
 ## ⚡ SESSION RESUME
-SpellingFun + TraceFun have been extracted to local Swift packages (Phase 1 complete, pushed). Phase 2 is Mac-only: open Xcode → File → Add Package Dependencies → Add Local → select Packages/SpellingFun, then Packages/TraceFun → add each library to ColoringFun target → Build → commit pbxproj. Tell the user Phase 1 is done and walk them through Phase 2.
+All mini-apps are in Swift packages. SpellingFun + TraceFun packages are built, registered in Xcode, and BUILD SUCCEEDED. No pending work — ask the user what to build next.
 
 # Coloring App — Project Memory
 
@@ -185,16 +185,107 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 
 ## Swift Package Protocol (for new mini-apps)
 
-Each new mini-app lives in `Packages/XxxFun/`. Zero changes to `project.pbxproj` from WSL.
+Each new mini-app lives in `Packages/XxxFun/`. The Mac step is **fully automated via SSH** — no Xcode GUI needed.
 
-**WSL steps (you or an agent):**
-1. Create `Packages/XxxFun/Package.swift` (copy template, change name)
-2. Create `Packages/XxxFun/Sources/XxxFun/XxxView.swift` — `public struct XxxView: View` + `public init() {}` + private Color extension at bottom
-3. Add `import XxxFun` to `AppRegistry.swift` + add entry to `AppRegistry.apps`
-4. Commit + push. **Never touch project.pbxproj.**
+### WSL steps
 
-**Mac Xcode step (one-time per package):**
-File → Add Package Dependencies → Add Local → select `Packages/XxxFun` → add library to ColoringFun target → Build → commit pbxproj → push.
+1. Create `Packages/XxxFun/Package.swift`:
+```swift
+// swift-tools-version:5.5
+import PackageDescription
+let package = Package(
+    name: "XxxFun",
+    platforms: [.iOS(.v15)],
+    products: [.library(name: "XxxFun", targets: ["XxxFun"])],
+    targets: [.target(name: "XxxFun")]
+)
+```
+2. Create `Packages/XxxFun/Sources/XxxFun/XxxView.swift`:
+   - `public struct XxxView: View` + `public init() {}`
+   - At bottom of file, add private extensions (required — these types are NOT exported from main target):
+```swift
+private extension Color {
+    init(r: Int, g: Int, b: Int) {
+        self.init(.sRGB, red: Double(r)/255, green: Double(g)/255, blue: Double(b)/255, opacity: 1)
+    }
+}
+```
+3. Add `import XxxFun` to `ColoringApp/AppRegistry.swift` + new `MiniAppDescriptor` entry to `AppRegistry.apps`
+4. Commit + push. **Never touch project.pbxproj from WSL.**
+
+### Mac SSH step (run via SSH — no Xcode GUI needed)
+
+```bash
+ssh claude@192.168.50.251 "cd ~/Dev/coloringApp && git pull"
+```
+
+Then run the registration Python script via SSH. For the **first new package after TraceFun**, use these UUIDs:
+- Package ref UUID: `E1E2E3E4E5E6E7E8E9F0F1F2`
+- Product dep UUID: `F1F2F3F4F5F6F7F8F9A0A1A2`
+
+**Already used UUIDs (do not reuse):**
+- `A1A2A3A4A5A6A7A8A9B0B1B2` — SpellingFun package ref
+- `B1B2B3B4B5B6B7B8B9C0C1C2` — TraceFun package ref
+- `C1C2C3C4C5C6C7C8C9D0D1D2` — SpellingFun product dep
+- `D1D2D3D4D5D6D7D8D9E0E1E2` — TraceFun product dep
+
+**Python script template (adapts for first vs subsequent packages):**
+
+```python
+# Run on Mac: python3 script.py from ~/Dev/coloringApp
+PKG_NAME = "XxxFun"          # e.g. "StoryFun"
+PKG_PATH = "Packages/XxxFun" # relative to project root
+PKG_UUID = "E1E2E3E4E5E6E7E8E9F0F1F2"   # unique, not in used list
+PROD_UUID = "F1F2F3F4F5F6F7F8F9A0A1A2"  # unique, not in used list
+
+with open('ColoringFun.xcodeproj/project.pbxproj', 'r') as f:
+    c = f.read()
+
+# -- Add to XCLocalSwiftPackageReference section --
+new_pkg_ref = (f'\t\t{PKG_UUID} /* {PKG_PATH} */ = {{\n'
+               f'\t\t\tisa = XCLocalSwiftPackageReference;\n'
+               f'\t\t\trelativePath = {PKG_PATH};\n'
+               f'\t\t}};\n')
+c = c.replace('/* End XCLocalSwiftPackageReference section */',
+              new_pkg_ref + '/* End XCLocalSwiftPackageReference section */')
+
+# -- Add to XCSwiftPackageProductDependency section --
+new_prod_dep = (f'\t\t{PROD_UUID} /* {PKG_NAME} */ = {{\n'
+                f'\t\t\tisa = XCSwiftPackageProductDependency;\n'
+                f'\t\t\tpackage = {PKG_UUID} /* {PKG_PATH} */;\n'
+                f'\t\t\tproductName = {PKG_NAME};\n'
+                f'\t\t}};\n')
+c = c.replace('/* End XCSwiftPackageProductDependency section */',
+              new_prod_dep + '/* End XCSwiftPackageProductDependency section */')
+
+# -- Add to packageReferences in PBXProject --
+c = c.replace(
+    '\t\t\t);  // end packageReferences' if '\t\t\t);  // end packageReferences' in c
+    else f'\t\t\t\tB1B2B3B4B5B6B7B8B9C0C1C2 /* XCLocalSwiftPackageReference "Packages/TraceFun" */,\n\t\t\t);',
+    f'\t\t\t\tB1B2B3B4B5B6B7B8B9C0C1C2 /* XCLocalSwiftPackageReference "Packages/TraceFun" */,\n'
+    f'\t\t\t\t{PKG_UUID} /* XCLocalSwiftPackageReference "{PKG_PATH}" */,\n\t\t\t);'
+)
+
+# -- Add to packageProductDependencies in native target --
+c = c.replace(
+    f'\t\t\t\tD1D2D3D4D5D6D7D8D9E0E1E2 /* TraceFun */,\n\t\t\t);',
+    f'\t\t\t\tD1D2D3D4D5D6D7D8D9E0E1E2 /* TraceFun */,\n'
+    f'\t\t\t\t{PROD_UUID} /* {PKG_NAME} */,\n\t\t\t);'
+)
+
+with open('ColoringFun.xcodeproj/project.pbxproj', 'w') as f:
+    f.write(c)
+print('Done')
+```
+
+Then verify and push:
+```bash
+ssh claude@192.168.50.251 "cd ~/Dev/coloringApp && xcodebuild -project ColoringFun.xcodeproj -scheme ColoringFun -destination 'platform=iOS Simulator,id=F90C33BE-82EB-474C-B566-8FAB43926C3B' build 2>&1 | grep -E '(error:|BUILD)'"
+# On success, commit on Mac and push via WSL patch:
+ssh claude@192.168.50.251 "cd ~/Dev/coloringApp && git add ColoringFun.xcodeproj/project.pbxproj && git commit -m 'chore: register XxxFun local package'"
+ssh claude@192.168.50.251 "git -C ~/Dev/coloringApp format-patch HEAD~1 --stdout" > /tmp/patch.patch
+git am /tmp/patch.patch && git push
+```
 
 ## Current Status (as of 2026-02-25)
 
@@ -203,18 +294,16 @@ File → Add Package Dependencies → Add Local → select `Packages/XxxFun` →
 - All 11 wife-feedback UX fixes
 - Flyout panel architecture (strips + slide-in panels)
 
-### Built on simulator ✅, not yet deployed to iPad:
+### Built on simulator ✅ (BUILD SUCCEEDED), not yet deployed to iPad:
 - Flyout panel rearchitecture
 - Kid Mode (`KidContentView` + `KidBrushBuilderView`)
 - Parent mode fixes: BrushBuilder as sheet, direct user brush listing, strip contrast
-- Kid Mode UX polish: texture previews in brush strip, portrait layout fix, texture designer builder, sizeVariation opacity scaling (untested as of 2026-02-25)
-- Kid brush preview overhaul: distinct static renders per medium + splatter for user brushes + bordered user-brush box (untested as of 2026-02-25)
-- Brush rendering overhaul: crayon stipple grain, marker ink-bleed halo, chalk pure particle cloud — both parent + kid mode (untested as of 2026-02-25)
-- Kid mode Size + Opacity sliders in top bar (untested as of 2026-02-25)
-
-### Pending — Phase 2 Mac Xcode step needed before build:
-- SpellingFun package (`Packages/SpellingFun`) — pushed to GitHub, needs Xcode "Add Local Package" step
-- TraceFun package (`Packages/TraceFun`) — pushed to GitHub, needs Xcode "Add Local Package" step
+- Kid Mode UX polish: texture previews in brush strip, portrait layout fix, texture designer builder, sizeVariation opacity scaling
+- Kid brush preview overhaul: distinct static renders per medium + splatter for user brushes + bordered user-brush box
+- Brush rendering overhaul: crayon stipple grain, marker ink-bleed halo, chalk pure particle cloud
+- Kid mode Size + Opacity sliders in top bar
+- **Spelling Fun** (`Packages/SpellingFun`) — package registered, builds clean
+- **Trace Fun** (`Packages/TraceFun`) — package registered, builds clean
 
 ### Untested on device (as of 2026-02-25):
 - Spelling Fun: full flow, voice recognition, letter tiles, drag-to-speak

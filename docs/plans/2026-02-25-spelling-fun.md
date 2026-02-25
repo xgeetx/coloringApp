@@ -1,5 +1,11 @@
 # Spelling Fun Implementation Plan
 
+> **STATUS: SUPERSEDED — 2026-02-25**
+> SpellingView.swift was moved to `Packages/SpellingFun/Sources/SpellingFun/SpellingView.swift`.
+> The file is a **local Swift package** (`public struct SpellingView`), NOT a file in `ColoringApp/`.
+> The UUID reference section below is obsolete — those UUIDs were removed from `project.pbxproj`.
+> See CLAUDE.md → "Swift Package Protocol" for how to add future apps.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers-extended-cc:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build a voice-driven spelling app for the 3rd hub tile — say a word, letters automatically animate out of the keyboard and land on the stage, then the child drags letters around and hears each one spoken aloud.
