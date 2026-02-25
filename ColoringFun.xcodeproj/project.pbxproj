@@ -26,8 +26,6 @@
 		F6A6B7C8D9E0F1A2B3C4D5E6 /* RightStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */; };
 		B3C3D4E5F6A7B8C9D0E1F2A3 /* KidContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B2C3D4E5F6A7B8C9D0E1F2 /* KidContentView.swift */; };
 		D5E5F6A7B8C9D0E1F2A3B4C5 /* KidBrushBuilderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D4E5F6A7B8C9D0E1F2A3B4 /* KidBrushBuilderView.swift */; };
-		E6F6A7B8C9D0E1F2A3B4C5D6 /* SpellingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7A7B8C9D0E1F2A3B4C5D6E7 /* SpellingView.swift */; };
-		A8B8C9D0E1F2A3B4C5D6E7F8 /* LetterTraceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9C9D0E1F2A3B4C5D6E7F8A9 /* LetterTraceView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,8 +49,6 @@
 		E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RightStripView.swift; sourceTree = "<group>"; };
 		A2B2C3D4E5F6A7B8C9D0E1F2 /* KidContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidContentView.swift; sourceTree = "<group>"; };
 		C4D4E5F6A7B8C9D0E1F2A3B4 /* KidBrushBuilderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KidBrushBuilderView.swift; sourceTree = "<group>"; };
-		F7A7B8C9D0E1F2A3B4C5D6E7 /* SpellingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpellingView.swift; sourceTree = "<group>"; };
-		B9C9D0E1F2A3B4C5D6E7F8A9 /* LetterTraceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LetterTraceView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,9 +84,7 @@
 				E5F5A6B7C8D9E0F1A2B3C4D5 /* RightStripView.swift */,
 				A2B2C3D4E5F6A7B8C9D0E1F2 /* KidContentView.swift */,
 				C4D4E5F6A7B8C9D0E1F2A3B4 /* KidBrushBuilderView.swift */,
-				F7A7B8C9D0E1F2A3B4C5D6E7 /* SpellingView.swift */,
-				B9C9D0E1F2A3B4C5D6E7F8A9 /* LetterTraceView.swift */,
-			);
+				);
 			path = ColoringApp;
 			sourceTree = "<group>";
 		};
@@ -196,9 +190,7 @@
 				F6A6B7C8D9E0F1A2B3C4D5E6 /* RightStripView.swift in Sources */,
 				B3C3D4E5F6A7B8C9D0E1F2A3 /* KidContentView.swift in Sources */,
 				D5E5F6A7B8C9D0E1F2A3B4C5 /* KidBrushBuilderView.swift in Sources */,
-				E6F6A7B8C9D0E1F2A3B4C5D6 /* SpellingView.swift in Sources */,
-				A8B8C9D0E1F2A3B4C5D6E7F8 /* LetterTraceView.swift in Sources */,
-			);
+				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
