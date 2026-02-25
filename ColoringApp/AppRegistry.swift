@@ -61,6 +61,14 @@ enum AppRegistry {
             isAvailable: true,
             makeRootView: { AnyView(SpellingView()) }
         ),
-        .placeholder(id: "app4", icon: "📖", displayName: "Story Time"),
+        MiniAppDescriptor(
+            id: "tracefun",
+            displayName: "Trace Fun",
+            subtitle: "Trace a Word!",
+            icon: "🖍️",
+            tileColor: Color(r: 180, g: 255, b: 220),
+            isAvailable: true,
+            makeRootView: { AnyView(LetterTraceView()) }
+        ),
     ]
 }
