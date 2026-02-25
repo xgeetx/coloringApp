@@ -87,7 +87,7 @@ struct BrushDescriptor: Identifiable, Codable, Hashable {
                         patternShape: nil, stampSpacing: 1.0, sizeVariation: 0.0, isSystem: true),
         BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000005")!,
                         name: "Hearts",   icon: "❤️", baseStyle: .patternStamp,
-                        patternShape: .heart, stampSpacing: 1.3, sizeVariation: 0.25, isSystem: true),
+                        patternShape: .heart, stampSpacing: 1.3, sizeVariation: 0.0, isSystem: true),
         BrushDescriptor(id: UUID(uuidString: "10000000-0000-0000-0000-000000000006")!,
                         name: "Dots",     icon: "•",  baseStyle: .patternStamp,
                         patternShape: .dot, stampSpacing: 0.9, sizeVariation: 0.0, isSystem: true),
