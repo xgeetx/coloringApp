@@ -142,6 +142,23 @@ struct DrawingCanvasView: View {
                 )
             )
         }
+        // Paper grain stipple — dots scattered within stroke width
+        // Uses index range 500+ to avoid collision with pass jitter indices (0–4, 100–104)
+        let spread = stroke.brushSize * 0.45
+        let hash   = stroke.id.hashValue
+        for (i, pt) in stroke.points.enumerated() where i % 2 == 0 {
+            let si = i / 2
+            let ox = (deterministicJitter(index: 500 + si * 4,     strokeHash: hash) * 2 - 1) * spread
+            let oy = (deterministicJitter(index: 500 + si * 4 + 1, strokeHash: hash) * 2 - 1) * spread
+            let r  =  0.5 + deterministicJitter(index: 500 + si * 4 + 2, strokeHash: hash) * 2.0
+            let op =  0.04 + deterministicJitter(index: 500 + si * 4 + 3, strokeHash: hash) * 0.18
+            let x  = pt.location.x + ox
+            let y  = pt.location.y + oy
+            ctx.fill(
+                Ellipse().path(in: CGRect(x: x - r, y: y - r, width: r * 2, height: r * 2)),
+                with: .color(stroke.color.opacity(op))
+            )
+        }
     }
 
     private func renderMarker(_ stroke: Stroke, in ctx: GraphicsContext) {
