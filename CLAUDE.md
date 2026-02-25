@@ -20,7 +20,7 @@ ssh claude@192.168.50.251 "cd ~/Dev/coloringApp && git pull && xcodebuild -proje
 
 **Mac dirty-worktree gotcha:** If `git pull` fails on the Mac with "local changes would be overwritten", run `git stash` first on the Mac, then pull.
 
-**Deploy to iPad:** Must run as `garrettshannon` — the `claude` SSH user can't access the signing certificate in `garrettshannon`'s keychain. Use Xcode directly. iPad UDID: `28b1b65d4528209892b1ef4389dee775a537648b`.
+**Deploy to iPad:** Must use Terminal on Mac **as `garrettshannon`** — `claude` SSH keychain locks during SSH sessions causing `errSecInternalComponent` at CodeSign. Command: `cd ~/Dev/coloringApp && xcodebuild -project ColoringFun.xcodeproj -scheme ColoringFun -destination 'id=28b1b65d4528209892b1ef4389dee775a537648b' build`. iPad UDID: `28b1b65d4528209892b1ef4389dee775a537648b`.
 
 Xcode project: `ColoringFun.xcodeproj` (iPad-only, iOS 15+, bundle ID `com.coloringapp.ColoringFun`).
 
