@@ -5,6 +5,7 @@ import SwiftUI
 struct DrawingCanvasView: View {
     @ObservedObject var state: DrawingState
     @State private var lastMagnification: CGFloat = 1.0
+    @State private var isPinching: Bool = false
 
     var body: some View {
         Canvas { ctx, size in
@@ -48,6 +49,7 @@ struct DrawingCanvasView: View {
     private var drawGesture: some Gesture {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
+                guard !isPinching else { return }
                 if state.isStampMode {
                     return
                 }
@@ -58,6 +60,10 @@ struct DrawingCanvasView: View {
                 }
             }
             .onEnded { value in
+                guard !isPinching else {
+                    state.currentStroke = nil   // discard in-progress stroke
+                    return
+                }
                 if state.isStampMode {
                     state.placeStamp(at: value.location)
                 } else {
@@ -69,12 +75,14 @@ struct DrawingCanvasView: View {
     private var pinchGesture: some Gesture {
         MagnificationGesture()
             .onChanged { scale in
+                isPinching = true
                 let delta = scale / lastMagnification
                 lastMagnification = scale
                 state.brushSize = (state.brushSize * delta).clamped(to: 6...80)
             }
             .onEnded { _ in
                 lastMagnification = 1.0
+                isPinching = false
             }
     }
 
