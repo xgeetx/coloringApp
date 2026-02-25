@@ -1,5 +1,5 @@
 ## ⚡ SESSION RESUME
-At the start of this session, read `docs/plans/2026-02-25-spelling-fun.md`, tell the user you're ready to continue from Task 1 (create SpellingView.swift), then wait for their go-ahead.
+SpellingFun + TraceFun have been extracted to local Swift packages (Phase 1 complete, pushed). Phase 2 is Mac-only: open Xcode → File → Add Package Dependencies → Add Local → select Packages/SpellingFun, then Packages/TraceFun → add each library to ColoringFun target → Build → commit pbxproj. Tell the user Phase 1 is done and walk them through Phase 2.
 
 # Coloring App — Project Memory
 
@@ -32,9 +32,9 @@ coloringApp/
 ├── ColoringFun.xcodeproj/
 │   ├── project.pbxproj
 │   └── project.xcworkspace/contents.xcworkspacedata
-├── ColoringApp/
+├── ColoringApp/                    — main target (hub shell + drawing engine only)
 │   ├── ColoringApp.swift           — @main entry; root is HubView()
-│   ├── AppRegistry.swift           — MiniAppDescriptor + AppRegistry.apps (🎨 Coloring Fun, 🌈 Kids Mode, ✏️ Spelling Fun, 🖍️ Trace Fun — all 4 live)
+│   ├── AppRegistry.swift           — MiniAppDescriptor + AppRegistry.apps; imports SpellingFun + TraceFun
 │   ├── HubView.swift               — 2×2 grid launcher, triple-tap title to rename
 │   ├── AppRequestView.swift        — voice dictation → email app request flow
 │   ├── ContentView.swift           — parent-mode root: @State activeFlyout + strip/canvas/flyout layout
@@ -51,9 +51,14 @@ coloringApp/
 │   ├── BrushBuilderView.swift      — Full brush builder (style + shape + sliders + name); opens as .sheet
 │   ├── KidContentView.swift        — Kid-mode root: texture brush strip (left), 8-stamp grid (right), canvas (centre), ColorPalette (bottom), top toolbar with Size+Opacity sliders (brush mode) + Undo/Erase/Clear/Home; includes KidBrushPreview, KidBrushButton, KidBrushStripView, KidSlider; iOS 15 compat via @available(iOS 16) sheet helpers
 │   ├── KidBrushBuilderView.swift   — Kid texture designer: 4 texture tiles (Crayon/Marker/Chalk/Glitter via KidBrushPreview), contextual slider (soft↔bold or dense↔spread), live-draw canvas, auto-names + auto-selects on save; KidTexturePickerTile struct
-│   ├── SpellingView.swift          — app3 Spelling Fun: voice → letter tiles auto-animate to stage, drag-to-speak (exists on disk + pbxproj, uncommitted)
-│   └── LetterTraceView.swift       — app4 Trace Fun: voice → confirm → keyboard slides in → letters pop staggered → trace each letter with rainbow paint (Canvas+mask)
 │   └── Info.plist
+├── Packages/                       — local Swift packages (new files here NEVER touch project.pbxproj)
+│   ├── SpellingFun/
+│   │   ├── Package.swift           — swift-tools-version:5.5, iOS 15+
+│   │   └── Sources/SpellingFun/SpellingView.swift  — public root view + private Color/Comparable extensions
+│   └── TraceFun/
+│       ├── Package.swift           — swift-tools-version:5.5, iOS 15+
+│       └── Sources/TraceFun/LetterTraceView.swift  — public root view + private Color extension
 └── docs/
     ├── feedback/
     │   ├── wife_feedback_02_24_2026.rtf  — text feedback (all 11 items addressed)
@@ -69,8 +74,8 @@ coloringApp/
         ├── 2026-02-25-kid-mode-ux-fixes.md                     — executed (2026-02-25)
         ├── 2026-02-25-kid-brush-previews.md                    — executed (2026-02-25)
         ├── 2026-02-25-brush-rendering-and-kid-sliders.md       — executed (2026-02-25)
-        ├── 2026-02-25-spelling-fun.md                          — PENDING (Task 1 next: create SpellingView.swift)
-        └── 2026-02-25-letter-trace-fun.md                      — executed (2026-02-25)
+        ├── 2026-02-25-spelling-fun.md                          — executed (SpellingFun package)
+        └── 2026-02-25-letter-trace-fun.md                      — executed (TraceFun package)
 ```
 
 ## Architecture & Key Design Decisions
@@ -111,12 +116,13 @@ coloringApp/
 - Portrait fix: `DrawingCanvasView` gets `.frame(maxWidth: .infinity, maxHeight: .infinity)`; main HStack gets `.frame(maxHeight: .infinity)`
 - iOS 15 compat: `presentationDetents` wrapped in `kidSheetDetents()` / `kidDragIndicator()` `@ViewBuilder` extensions using `#available(iOS 16, *)`
 
-### Spelling Fun — app3 (see docs/plans/2026-02-25-spelling-fun.md — PENDING)
-- `SpellingView.swift`: voice → confirm → all letters scatter onto stage → drag tiles to hear letters spoken
-- pbxproj UUIDs: PBXBuildFile `E6F6A7B8C9D0E1F2A3B4C5D6`, PBXFileRef `F7A7B8C9D0E1F2A3B4C5D6E7`
-- File exists on disk + in pbxproj but **not committed yet**
+### Spelling Fun — app3 (Packages/SpellingFun — Phase 1 done, Phase 2 Mac pending)
+- `SpellingView.swift` lives in `Packages/SpellingFun/Sources/SpellingFun/`
+- `public struct SpellingView: View` + `public init() {}` — imported via `import SpellingFun` in AppRegistry
+- voice → confirm → all letters scatter onto stage → drag tiles to hear letters spoken
+- Private `Color(r:g:b:)` and `Comparable.clamped(to:)` extensions inlined at bottom of package source
 
-### Letter Trace Fun — app4 (see docs/plans/2026-02-25-letter-trace-fun.md — executed 2026-02-25)
+### Letter Trace Fun — app4 (Packages/TraceFun — Phase 1 done, Phase 2 Mac pending)
 - `LetterTraceView.swift`: voice → confirm → keyboard slides in → letters pop out staggered (0.4s each) → trace each letter with rainbow paint → celebrate
 - State machine: `.idle → .listening → .confirm(word) → .tracing(word, letterIndex) → .celebrate(word)` in `LetterTraceViewModel (@MainActor)`
 - **Screen 1 (mic) and Screen 2 (confirm) have NO keyboard** — keyboard appears only when tracing begins
@@ -124,7 +130,8 @@ coloringApp/
 - Tracing paint: `Canvas { ... }` drawing rainbow circles at drag points, `.mask(Text(letter).font(...))` clips paint to the letter glyph shape exactly
 - Completion: cumulative drag distance ≥ 350px (no pixel-coverage needed); TTS says letter on complete, auto-advances after 0.8s
 - Progress dots + small tile row + big centered letter + read-only keyboard panel layout
-- pbxproj UUIDs: PBXBuildFile `A8B8C9D0E1F2A3B4C5D6E7F8`, PBXFileRef `B9C9D0E1F2A3B4C5D6E7F8A9`
+- `LetterTraceView.swift` lives in `Packages/TraceFun/Sources/TraceFun/`; `public struct LetterTraceView: View` + `public init() {}`
+- Private `Color(r:g:b:)` extension inlined at bottom of package source
 
 ### BrushesFlyoutView (parent mode)
 - User brushes shown directly below system brushes via `state.brushPool.filter { !$0.isSystem }` — no slot paradigm in flyout UI
@@ -176,6 +183,19 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 - Mac `git pull` can fail if Xcode auto-modified `project.pbxproj` locally — run `git stash` on Mac first
 - `AVSpeechSynthesizer`: call `stopSpeaking(at: .immediate)` before each new utterance to prevent a speech queue backlog
 
+## Swift Package Protocol (for new mini-apps)
+
+Each new mini-app lives in `Packages/XxxFun/`. Zero changes to `project.pbxproj` from WSL.
+
+**WSL steps (you or an agent):**
+1. Create `Packages/XxxFun/Package.swift` (copy template, change name)
+2. Create `Packages/XxxFun/Sources/XxxFun/XxxView.swift` — `public struct XxxView: View` + `public init() {}` + private Color extension at bottom
+3. Add `import XxxFun` to `AppRegistry.swift` + add entry to `AppRegistry.apps`
+4. Commit + push. **Never touch project.pbxproj.**
+
+**Mac Xcode step (one-time per package):**
+File → Add Package Dependencies → Add Local → select `Packages/XxxFun` → add library to ColoringFun target → Build → commit pbxproj → push.
+
 ## Current Status (as of 2026-02-25)
 
 ### Shipped and on device (installed by garrettshannon via Xcode):
@@ -191,12 +211,13 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 - Kid brush preview overhaul: distinct static renders per medium + splatter for user brushes + bordered user-brush box (untested as of 2026-02-25)
 - Brush rendering overhaul: crayon stipple grain, marker ink-bleed halo, chalk pure particle cloud — both parent + kid mode (untested as of 2026-02-25)
 - Kid mode Size + Opacity sliders in top bar (untested as of 2026-02-25)
-- Trace Fun (`LetterTraceView`) — full voice-to-trace flow, BUILD SUCCEEDED (untested on device as of 2026-02-25)
 
-### Pending — exists on disk, needs commit + build:
-- Spelling Fun (`SpellingView`) — plan at docs/plans/2026-02-25-spelling-fun.md
+### Pending — Phase 2 Mac Xcode step needed before build:
+- SpellingFun package (`Packages/SpellingFun`) — pushed to GitHub, needs Xcode "Add Local Package" step
+- TraceFun package (`Packages/TraceFun`) — pushed to GitHub, needs Xcode "Add Local Package" step
 
 ### Untested on device (as of 2026-02-25):
+- Spelling Fun: full flow, voice recognition, letter tiles, drag-to-speak
 - Trace Fun: full flow, voice recognition, letter pop animation, rainbow paint tracing, TTS
 - Kid Mode layout (portrait + landscape)
 - Kid brush builder live canvas preview
