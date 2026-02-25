@@ -1,14 +1,15 @@
 {
   "planPath": "docs/plans/2026-02-24-kid-mode-and-parent-fixes.md",
   "tasks": [
-    {"id": 9,  "subject": "Task 1: Create KidContentView.swift",                  "status": "pending"},
-    {"id": 10, "subject": "Task 2: Create KidBrushBuilderView.swift",             "status": "pending", "blockedBy": [9]},
-    {"id": 11, "subject": "Task 3: Register new files in project.pbxproj",        "status": "pending", "blockedBy": [9, 10]},
-    {"id": 12, "subject": "Task 4: Add Kids Mode tile to AppRegistry.swift",       "status": "pending", "blockedBy": [11]},
-    {"id": 13, "subject": "Task 5: Fix BrushBuilderView — sheet",                 "status": "pending"},
-    {"id": 14, "subject": "Task 6: Fix BrushesFlyoutView — full brush pool",      "status": "pending"},
-    {"id": 15, "subject": "Task 7: Fix strip visual contrast",                    "status": "pending"},
-    {"id": 16, "subject": "Task 8: Final build, push, and install check",         "status": "pending", "blockedBy": [12, 13, 14, 15]}
+    {"id": 1,  "subject": "Task 1: Create KidContentView.swift",                  "status": "completed"},
+    {"id": 2,  "subject": "Task 2: Create KidBrushBuilderView.swift",             "status": "completed", "blockedBy": [1]},
+    {"id": 3,  "subject": "Task 3: Register new files in project.pbxproj",        "status": "completed", "blockedBy": [1, 2]},
+    {"id": 4,  "subject": "Task 4: Add Kids Mode tile to AppRegistry.swift",       "status": "completed", "blockedBy": [3]},
+    {"id": 5,  "subject": "Task 5: Fix BrushBuilderView — sheet",                 "status": "completed"},
+    {"id": 6,  "subject": "Task 6: Fix BrushesFlyoutView — full brush pool",      "status": "completed"},
+    {"id": 7,  "subject": "Task 7: Fix strip visual contrast",                    "status": "completed"},
+    {"id": 8,  "subject": "Task 8: Final build, push, and install check",         "status": "completed", "blockedBy": [4, 5, 6, 7]}
   ],
-  "lastUpdated": "2026-02-24"
+  "lastUpdated": "2026-02-25",
+  "completedAt": "2026-02-25"
 }

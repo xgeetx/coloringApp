@@ -1,0 +1,12 @@
+{
+  "planPath": "docs/plans/2026-02-25-kid-mode-ux-fixes.md",
+  "tasks": [
+    {"id": 2, "subject": "Task 1: Add PatternShape.path() and clean up shape helpers", "status": "pending"},
+    {"id": 3, "subject": "Task 2: Fix portrait layout collapse in KidContentView", "status": "pending"},
+    {"id": 4, "subject": "Task 3: Add KidBrushPreview + update KidBrushButton", "status": "pending", "blockedBy": [2]},
+    {"id": 5, "subject": "Task 4: DrawingCanvasView sizeVariation opacity scaling", "status": "pending"},
+    {"id": 6, "subject": "Task 5: Redesign KidBrushBuilderView as texture designer", "status": "pending", "blockedBy": [2, 4]},
+    {"id": 7, "subject": "Task 6: Build and push", "status": "pending", "blockedBy": [2, 3, 4, 5, 6]}
+  ],
+  "lastUpdated": "2026-02-25T00:00:00Z"
+}
