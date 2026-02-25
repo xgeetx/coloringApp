@@ -85,27 +85,28 @@ struct DrawingCanvasView: View {
     }
 
     private func renderCrayon(_ stroke: Stroke, in ctx: GraphicsContext) {
-        // Simulate crayon texture: 3 offset passes at reduced opacity
+        // 5 passes: offset + varying opacity creates wax texture
         let offsets: [(CGFloat, CGFloat, Double)] = [
-            (-1.5, -1.0, 0.55),
-            ( 0.0,  0.0, 0.65),
-            ( 1.5,  1.0, 0.50),
+            (-2.5, -1.5, 0.50),
+            (-1.0, -0.5, 0.65),
+            ( 0.0,  0.0, 0.72),
+            ( 1.0,  0.8, 0.60),
+            ( 2.2,  1.5, 0.45),
         ]
-        for (dx, dy, opacity) in offsets {
+        for (i, (dx, dy, opacity)) in offsets.enumerated() {
             var path = Path()
+            let jitter = deterministicJitter(index: i, strokeHash: stroke.id.hashValue) * 1.5
             let pts = stroke.points.map {
-                CGPoint(x: $0.location.x + dx, y: $0.location.y + dy)
+                CGPoint(x: $0.location.x + dx + jitter, y: $0.location.y + dy + jitter)
             }
             guard let first = pts.first else { continue }
             path.move(to: first)
-            for pt in pts.dropFirst() {
-                path.addLine(to: pt)
-            }
+            for pt in pts.dropFirst() { path.addLine(to: pt) }
             ctx.stroke(
                 path,
                 with: .color(stroke.color.opacity(opacity)),
                 style: StrokeStyle(
-                    lineWidth: stroke.brushSize * 0.8,
+                    lineWidth: stroke.brushSize * 0.85,
                     lineCap: .round,
                     lineJoin: .round
                 )
