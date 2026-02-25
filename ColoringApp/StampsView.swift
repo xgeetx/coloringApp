@@ -61,6 +61,13 @@ struct StampsPanelView: View {
                 .fill(.white.opacity(0.85))
                 .shadow(color: .black.opacity(0.12), radius: 6)
         )
+        .onChange(of: selectedCategoryIndex) { newIndex in
+            let category = allStampCategories[newIndex]
+            if let first = category.stamps.first {
+                state.selectedStamp = first
+                state.isStampMode = true
+            }
+        }
     }
 }
 
