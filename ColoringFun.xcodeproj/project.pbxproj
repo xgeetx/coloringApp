@@ -119,6 +119,10 @@
 			);
 			dependencies = (
 			);
+			packageProductDependencies = (
+				C1C2C3C4C5C6C7C8C9D0D1D2 /* SpellingFun */,
+				D1D2D3D4D5D6D7D8D9E0E1E2 /* TraceFun */,
+			);
 			name = ColoringFun;
 			productName = ColoringFun;
 			productReference = D91517BFBDECE389497A425B /* ColoringFun.app */;
@@ -149,6 +153,10 @@
 			);
 			mainGroup = 2B731CEFC6751AAE0EC69B98;
 			productRefGroup = DC9A3D7B44FDA1296F036EB8 /* Products */;
+			packageReferences = (
+				A1A2A3A4A5A6A7A8A9B0B1B2 /* XCLocalSwiftPackageReference "Packages/SpellingFun" */,
+				B1B2B3B4B5B6B7B8B9C0C1C2 /* XCLocalSwiftPackageReference "Packages/TraceFun" */,
+			);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -282,6 +290,30 @@
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A1A2A3A4A5A6A7A8A9B0B1B2 /* Packages/SpellingFun */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/SpellingFun;
+		};
+		B1B2B3B4B5B6B7B8B9C0C1C2 /* Packages/TraceFun */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/TraceFun;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C1C2C3C4C5C6C7C8C9D0D1D2 /* SpellingFun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1A2A3A4A5A6A7A8A9B0B1B2 /* Packages/SpellingFun */;
+			productName = SpellingFun;
+		};
+		D1D2D3D4D5D6D7D8D9E0E1E2 /* TraceFun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B1B2B3B4B5B6B7B8B9C0C1C2 /* Packages/TraceFun */;
+			productName = TraceFun;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCConfigurationList section */
 		813FD6012A496A7F1C09B5BD /* Build configuration list for PBXProject "ColoringFun" */ = {
