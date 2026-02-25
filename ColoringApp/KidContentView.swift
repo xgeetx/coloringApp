@@ -52,6 +52,7 @@ struct KidContentView: View {
                     // Centre: canvas
                     ZStack {
                         DrawingCanvasView(state: state)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: 20))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 20)
@@ -90,6 +91,7 @@ struct KidContentView: View {
                         .frame(width: 100)
                 }
                 .padding(.horizontal, 12)
+                .frame(maxHeight: .infinity)
 
                 // ── Bottom: colour palette ──
                 ColorPaletteView(state: state)
