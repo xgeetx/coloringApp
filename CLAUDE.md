@@ -1,6 +1,5 @@
 ## ⚡ SESSION RESUME
-At the start of this session, read `docs/plans/2026-02-25-spelling-fun.md`, tell the user
-you're ready to continue from Task 1 (create SpellingView.swift), then wait for their go-ahead.
+At the start of this session, read `docs/plans/2026-02-25-spelling-fun.md`, tell the user you're ready to continue from Task 1 (create SpellingView.swift), then wait for their go-ahead.
 
 # Coloring App — Project Memory
 
@@ -35,7 +34,7 @@ coloringApp/
 │   └── project.xcworkspace/contents.xcworkspacedata
 ├── ColoringApp/
 │   ├── ColoringApp.swift           — @main entry; root is HubView()
-│   ├── AppRegistry.swift           — MiniAppDescriptor + AppRegistry.apps (🎨 Coloring Fun, 🌈 Kids Mode live; ✏️ Spelling Fun pending; 1 placeholder)
+│   ├── AppRegistry.swift           — MiniAppDescriptor + AppRegistry.apps (🎨 Coloring Fun, 🌈 Kids Mode, ✏️ Spelling Fun, 🖍️ Trace Fun — all 4 live)
 │   ├── HubView.swift               — 2×2 grid launcher, triple-tap title to rename
 │   ├── AppRequestView.swift        — voice dictation → email app request flow
 │   ├── ContentView.swift           — parent-mode root: @State activeFlyout + strip/canvas/flyout layout
@@ -50,9 +49,10 @@ coloringApp/
 │   ├── LeftStripView.swift         — 44pt icon strip (brush/size/opacity); StripIconButton shared component
 │   ├── RightStripView.swift        — 44pt icon strip (stamps only)
 │   ├── BrushBuilderView.swift      — Full brush builder (style + shape + sliders + name); opens as .sheet
-│   ├── KidContentView.swift        — Kid-mode root: texture brush strip (left), 8-stamp grid (right), canvas (centre), ColorPalette (bottom), minimal top toolbar; includes KidBrushPreview + KidBrushButton; iOS 15 compat via @available(iOS 16) sheet helpers
+│   ├── KidContentView.swift        — Kid-mode root: texture brush strip (left), 8-stamp grid (right), canvas (centre), ColorPalette (bottom), top toolbar with Size+Opacity sliders (brush mode) + Undo/Erase/Clear/Home; includes KidBrushPreview, KidBrushButton, KidBrushStripView, KidSlider; iOS 15 compat via @available(iOS 16) sheet helpers
 │   ├── KidBrushBuilderView.swift   — Kid texture designer: 4 texture tiles (Crayon/Marker/Chalk/Glitter via KidBrushPreview), contextual slider (soft↔bold or dense↔spread), live-draw canvas, auto-names + auto-selects on save; KidTexturePickerTile struct
-│   └── SpellingView.swift          — [PENDING] Spelling Fun: voice → letter tiles auto-animate from keyboard, drag-to-speak
+│   ├── SpellingView.swift          — app3 Spelling Fun: voice → letter tiles auto-animate to stage, drag-to-speak (exists on disk + pbxproj, uncommitted)
+│   └── LetterTraceView.swift       — app4 Trace Fun: voice → confirm → keyboard slides in → letters pop staggered → trace each letter with rainbow paint (Canvas+mask)
 │   └── Info.plist
 └── docs/
     ├── feedback/
@@ -67,7 +67,10 @@ coloringApp/
         ├── 2026-02-24-flyout-popover-architecture-design.md    — design doc; implemented
         ├── 2026-02-24-kid-mode-and-parent-fixes.md             — executed (2026-02-25)
         ├── 2026-02-25-kid-mode-ux-fixes.md                     — executed (2026-02-25)
-        └── 2026-02-25-spelling-fun.md                          — PENDING (Task 1 next: create SpellingView.swift)
+        ├── 2026-02-25-kid-brush-previews.md                    — executed (2026-02-25)
+        ├── 2026-02-25-brush-rendering-and-kid-sliders.md       — executed (2026-02-25)
+        ├── 2026-02-25-spelling-fun.md                          — PENDING (Task 1 next: create SpellingView.swift)
+        └── 2026-02-25-letter-trace-fun.md                      — executed (2026-02-25)
 ```
 
 ## Architecture & Key Design Decisions
@@ -81,7 +84,7 @@ coloringApp/
 ### AppRegistry
 - `MiniAppDescriptor: Identifiable & Equatable` (Equatable is id-based — closures block synthesis)
 - `makeRootView: () -> AnyView` — each tile declares its own root
-- Current tiles: 🎨 Coloring Fun (`ContentView`), 🌈 Kids Mode (`KidContentView`), ✏️ Spelling Fun (`SpellingView` — pending), 📖 Story Time (placeholder)
+- Current tiles: 🎨 Coloring Fun (`ContentView`), 🌈 Kids Mode (`KidContentView`), ✏️ Spelling Fun (`SpellingView` — app3, uncommitted), 🖍️ Trace Fun (`LetterTraceView` — app4, built on simulator)
 - Add new app: one entry in `AppRegistry.apps`, no other changes
 
 ### Flyout Panel Architecture (ContentView — parent mode)
@@ -98,24 +101,30 @@ coloringApp/
 - Separate `KidContentView` with its own `@StateObject var state = DrawingState()` — drawings are independent from parent mode
 - Left strip: texture brushes only (Crayon, Marker, Chalk, Sparkle + user-created) — no pattern-stamp brushes
 - Right panel: 8 always-visible stamps + "More ↓" button → `StampsFlyoutView` sheet
-- `KidBrushButton` shows a live `KidBrushPreview` (wavy Canvas stroke) instead of an emoji icon
-- `KidBrushPreview` — Canvas view drawing a wave in the brush's actual texture style; shared by strip and `KidTexturePickerTile`
-- `KidBrushBuilderView`: texture designer — 4 tiles (Crayon/Marker/Chalk/Glitter), contextual slider (soft↔bold for texture brushes, dense↔spread for Glitter), live-draw canvas preview, auto-names + auto-selects on save
+- `KidBrushButton` shows a live `KidBrushPreview` (static Canvas render per medium) instead of an emoji icon
+- `KidBrushPreview` — routes on `brush.isSystem`: system brushes get a distinct static render per `baseStyle` (crayon=diagonal band+grain stipple, marker=horizontal stroke+halo, chalk=diagonal passes+dust, sparkle=scattered stars); user brushes get a seeded splatter dot cloud
+- `KidBrushStripView` takes `systemBrushes` + `userBrushes` as separate arrays; user brushes appear inside a dashed purple-bordered box above the Make button
+- `KidBrushBuilderView`: texture designer — 4 tiles (Crayon/Marker/Chalk/Glitter), contextual slider (soft↔bold for texture brushes, dense↔spread for Glitter), live-draw canvas preview, auto-names + auto-selects on save; caps user brushes at 2 (oldest removed on save)
 - `sizeVariation` wired into `renderCrayon`/`renderMarker`/`renderChalk` as `opacityScale` for non-system brushes only — system brushes unchanged
+- `KidTopToolbarView` shows Size + Opacity `KidSlider` components in the spacer zone when `!isStampMode && !isEraserMode`; sliders bind directly to `state.brushSize` (6–80) and `state.brushOpacity` (0.2–1.0)
 - No flyouts in kid mode: everything always visible, large targets (68pt buttons)
 - Portrait fix: `DrawingCanvasView` gets `.frame(maxWidth: .infinity, maxHeight: .infinity)`; main HStack gets `.frame(maxHeight: .infinity)`
 - iOS 15 compat: `presentationDetents` wrapped in `kidSheetDetents()` / `kidDragIndicator()` `@ViewBuilder` extensions using `#available(iOS 16, *)`
 
-### Spelling Fun Architecture (planned 2026-02-25 — see docs/plans/2026-02-25-spelling-fun.md)
-- Single `SpellingView.swift` — self-contained mini-app, no shared state with drawing apps
-- State machine: `.idle → .listening → .confirm(word) → .spelling(word)` in `SpellingViewModel (@MainActor)`
-- Word extraction: scans for "spell X" pattern in transcript; falls back to last non-filler word
-- `.spelling` phase: top 55% = draggable letter stage; bottom 45% = read-only keyboard display
-- Letters **auto-animate** on entry: spring from keyboard zone (large positive Y offset) to scattered stage positions, staggered at 0.12s per letter — no user action required
-- Keyboard display: all 26 ABC-order letters; word's letters highlighted in purple — purely visual, not interactive
-- **Only interaction**: `DragGesture(minimumDistance: 4)` on tiles — `.onChanged` fires `speakLetter()` once per gesture (guarded by `hasSpokeThisDrag`), resets on `.onEnded`
-- `AVSpeechSynthesizer.stopSpeaking(at: .immediate)` called before each new utterance to prevent queue buildup
+### Spelling Fun — app3 (see docs/plans/2026-02-25-spelling-fun.md — PENDING)
+- `SpellingView.swift`: voice → confirm → all letters scatter onto stage → drag tiles to hear letters spoken
 - pbxproj UUIDs: PBXBuildFile `E6F6A7B8C9D0E1F2A3B4C5D6`, PBXFileRef `F7A7B8C9D0E1F2A3B4C5D6E7`
+- File exists on disk + in pbxproj but **not committed yet**
+
+### Letter Trace Fun — app4 (see docs/plans/2026-02-25-letter-trace-fun.md — executed 2026-02-25)
+- `LetterTraceView.swift`: voice → confirm → keyboard slides in → letters pop out staggered (0.4s each) → trace each letter with rainbow paint → celebrate
+- State machine: `.idle → .listening → .confirm(word) → .tracing(word, letterIndex) → .celebrate(word)` in `LetterTraceViewModel (@MainActor)`
+- **Screen 1 (mic) and Screen 2 (confirm) have NO keyboard** — keyboard appears only when tracing begins
+- Letter pop animation: `.transition(.move(edge: .bottom).combined(with: .scale(0.2).combined(with: .opacity)))` with staggered `DispatchQueue.asyncAfter` at 0.4s intervals; guard against double-pop with `tiles.allSatisfy({ !$0.hasPopped })`
+- Tracing paint: `Canvas { ... }` drawing rainbow circles at drag points, `.mask(Text(letter).font(...))` clips paint to the letter glyph shape exactly
+- Completion: cumulative drag distance ≥ 350px (no pixel-coverage needed); TTS says letter on complete, auto-advances after 0.8s
+- Progress dots + small tile row + big centered letter + read-only keyboard panel layout
+- pbxproj UUIDs: PBXBuildFile `A8B8C9D0E1F2A3B4C5D6E7F8`, PBXFileRef `B9C9D0E1F2A3B4C5D6E7F8A9`
 
 ### BrushesFlyoutView (parent mode)
 - User brushes shown directly below system brushes via `state.brushPool.filter { !$0.isSystem }` — no slot paradigm in flyout UI
@@ -126,7 +135,7 @@ coloringApp/
 - `DrawingState` is `ObservableObject`; created fresh per session via `@StateObject` in root view
 - Each hub→app navigation creates a new root view → new `DrawingState` → `init()` loads from disk (seamless restore)
 - 8 system brushes (fixed UUIDs): Crayon, Marker, Sparkle, Chalk, Hearts, Dots, Flowers, Confetti
-- `BrushBaseStyle`: `.crayon` (5-pass textured, independent x/y jitter), `.marker`, `.chalk`, `.patternStamp`
+- `BrushBaseStyle`: `.crayon` (5-pass offset strokes + stipple grain dots every-other-point, jitter indices 500+ avoid collision with pass jitter 0–4/100–104), `.marker` (wide transparent halo pre-pass + clean solid pass, no texture), `.chalk` (pure particle cloud — 5 dots per point within `brushSize×0.6` spread, no stroke path at all), `.patternStamp`
 - `PatternShape.path(center:size:)` — shape math centralized in `Models.swift`; `DrawingCanvasView.pathForShape` and preview canvases all delegate to it
 - Eraser: `BrushDescriptor.eraser` (UUID all-zeros), `renderHardErase()` always at opacity 1.0
 - Pinch gesture resizes brush (6–80pt); `isPinching` flag prevents stroke artifacts
@@ -161,7 +170,7 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 - `AVAudioSession` must be configured before `inputNode` access (see AppRequestView / SpellingView pattern)
 - `SFSpeechRecognizer` callbacks are off main thread — always dispatch to main (or use `@MainActor` class)
 - `foregroundStyle` ternary needs explicit `Color.` types — Swift inference fails across `some ShapeStyle` / `Color`
-- `.onChange(of:)` two-parameter form is correct for iOS 15/16 (deprecation warning on 17+ unavoidable)
+- `.onChange(of:)` use single-param form `{ newValue in }` for iOS 15/16 — the two-param `{ old, new in }` form is iOS 17+ API only
 - Strip background must use `.ultraThinMaterial` not `.white.opacity(0.75)` — the latter is invisible on the app's light pastel gradient
 - `presentationDetents` / `presentationDragIndicator` are iOS 16+ — wrap in `#available(iOS 16, *)` `@ViewBuilder` helpers for iOS 15 compat
 - Mac `git pull` can fail if Xcode auto-modified `project.pbxproj` locally — run `git stash` on Mac first
@@ -179,11 +188,16 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 - Kid Mode (`KidContentView` + `KidBrushBuilderView`)
 - Parent mode fixes: BrushBuilder as sheet, direct user brush listing, strip contrast
 - Kid Mode UX polish: texture previews in brush strip, portrait layout fix, texture designer builder, sizeVariation opacity scaling (untested as of 2026-02-25)
+- Kid brush preview overhaul: distinct static renders per medium + splatter for user brushes + bordered user-brush box (untested as of 2026-02-25)
+- Brush rendering overhaul: crayon stipple grain, marker ink-bleed halo, chalk pure particle cloud — both parent + kid mode (untested as of 2026-02-25)
+- Kid mode Size + Opacity sliders in top bar (untested as of 2026-02-25)
+- Trace Fun (`LetterTraceView`) — full voice-to-trace flow, BUILD SUCCEEDED (untested on device as of 2026-02-25)
 
-### Planned — not yet built:
+### Pending — exists on disk, needs commit + build:
 - Spelling Fun (`SpellingView`) — plan at docs/plans/2026-02-25-spelling-fun.md
 
 ### Untested on device (as of 2026-02-25):
+- Trace Fun: full flow, voice recognition, letter pop animation, rainbow paint tracing, TTS
 - Kid Mode layout (portrait + landscape)
 - Kid brush builder live canvas preview
 - Flyout panel architecture (portrait + landscape)
