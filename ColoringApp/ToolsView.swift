@@ -90,6 +90,33 @@ struct BrushToolsView: View {
                     }
                 }
 
+                Divider()
+
+                // ── Opacity ──
+                VStack(spacing: 8) {
+                    HStack {
+                        Text("Opacity")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Text("\(Int(state.brushOpacity * 100))%")
+                            .font(.system(size: 12, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $state.brushOpacity, in: 0.1...1.0, step: 0.05)
+                        .tint(.purple)
+                        .onChange(of: state.brushOpacity) { _ in state.persist() }
+
+                    // Preview swatch
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(state.selectedColor.opacity(state.brushOpacity))
+                        .frame(height: 20)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(Color.gray.opacity(0.3), lineWidth: 1)
+                        )
+                }
+
                 Spacer()
             }
             .padding(10)
