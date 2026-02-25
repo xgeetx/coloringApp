@@ -95,9 +95,10 @@ struct DrawingCanvasView: View {
         ]
         for (i, (dx, dy, opacity)) in offsets.enumerated() {
             var path = Path()
-            let jitter = deterministicJitter(index: i, strokeHash: stroke.id.hashValue) * 1.5
+            let jitterX = deterministicJitter(index: i,       strokeHash: stroke.id.hashValue) * 1.5
+            let jitterY = deterministicJitter(index: i + 100, strokeHash: stroke.id.hashValue) * 1.5
             let pts = stroke.points.map {
-                CGPoint(x: $0.location.x + dx + jitter, y: $0.location.y + dy + jitter)
+                CGPoint(x: $0.location.x + dx + jitterX, y: $0.location.y + dy + jitterY)
             }
             guard let first = pts.first else { continue }
             path.move(to: first)
