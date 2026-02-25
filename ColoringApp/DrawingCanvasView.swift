@@ -69,6 +69,13 @@ struct DrawingCanvasView: View {
 
     private func render(stroke: Stroke, in ctx: GraphicsContext) {
         guard !stroke.points.isEmpty else { return }
+
+        // Eraser always hard-erases at full opacity
+        if stroke.brush.id == BrushDescriptor.eraser.id {
+            renderHardErase(stroke, in: ctx)
+            return
+        }
+
         switch stroke.brush.baseStyle {
         case .crayon:       renderCrayon(stroke, in: ctx)
         case .marker:       renderMarker(stroke, in: ctx)
@@ -130,6 +137,29 @@ struct DrawingCanvasView: View {
                 lineCap: .round,
                 lineJoin: .round
             )
+        )
+    }
+
+    private func renderHardErase(_ stroke: Stroke, in ctx: GraphicsContext) {
+        var path = Path()
+        guard let first = stroke.points.first else { return }
+        path.move(to: first.location)
+
+        if stroke.points.count == 1 {
+            let r = stroke.brushSize / 2
+            let rect = CGRect(x: first.location.x - r, y: first.location.y - r,
+                              width: stroke.brushSize, height: stroke.brushSize)
+            ctx.fill(Ellipse().path(in: rect), with: .color(stroke.color.opacity(1.0)))
+            return
+        }
+
+        for pt in stroke.points.dropFirst() {
+            path.addLine(to: pt.location)
+        }
+        ctx.stroke(
+            path,
+            with: .color(stroke.color.opacity(1.0)),
+            style: StrokeStyle(lineWidth: stroke.brushSize * 1.6, lineCap: .round, lineJoin: .round)
         )
     }
 
