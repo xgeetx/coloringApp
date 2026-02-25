@@ -7,14 +7,15 @@ struct KidContentView: View {
     @State private var showMoreStamps  = false
     @State private var showKidBuilder  = false
 
-    // Texture-only brushes for the kid strip (no pattern-stamp icon brushes)
-    private var textureBrushes: [BrushDescriptor] {
+    private var systemTextureBrushes: [BrushDescriptor] {
         let textureStyles: Set<BrushBaseStyle> = [.crayon, .marker, .chalk]
-        let systemTexture = BrushDescriptor.systemBrushes.filter {
+        return BrushDescriptor.systemBrushes.filter {
             textureStyles.contains($0.baseStyle) || $0.name == "Sparkle"
         }
-        let userBrushes = state.brushPool.filter { !$0.isSystem }
-        return systemTexture + userBrushes
+    }
+
+    private var kidUserBrushes: [BrushDescriptor] {
+        state.brushPool.filter { !$0.isSystem }
     }
 
     var body: some View {
@@ -44,7 +45,8 @@ struct KidContentView: View {
                     // Left: texture brushes
                     KidBrushStripView(
                         state: state,
-                        brushes: textureBrushes,
+                        systemBrushes: systemTextureBrushes,
+                        userBrushes: kidUserBrushes,
                         onBuildBrush: { showKidBuilder = true }
                     )
                     .frame(width: 84)
@@ -200,13 +202,16 @@ struct KidToolbarButton: View {
 
 struct KidBrushStripView: View {
     @ObservedObject var state: DrawingState
-    let brushes: [BrushDescriptor]
+    let systemBrushes: [BrushDescriptor]
+    let userBrushes: [BrushDescriptor]    // max 2; capped at save time
     let onBuildBrush: () -> Void
 
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 10) {
-                ForEach(brushes) { brush in
+
+                // ── System brushes ──
+                ForEach(systemBrushes) { brush in
                     KidBrushButton(
                         brush: brush,
                         isSelected: !state.isStampMode && !state.isEraserMode
@@ -219,30 +224,44 @@ struct KidBrushStripView: View {
                     }
                 }
 
-                Divider().padding(.horizontal, 6)
-
-                // Build a Brush button
-                Button(action: onBuildBrush) {
-                    VStack(spacing: 4) {
-                        Text("🔮")
-                            .font(.system(size: 30))
-                        Text("Make")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(.purple)
+                // ── My Brushes: bordered box containing user brushes + Make ──
+                VStack(spacing: 8) {
+                    ForEach(userBrushes) { brush in
+                        KidBrushButton(
+                            brush: brush,
+                            isSelected: !state.isStampMode && !state.isEraserMode
+                                        && state.selectedBrush.id == brush.id,
+                            color: state.selectedColor
+                        ) {
+                            state.selectedBrush = brush
+                            state.isStampMode   = false
+                            state.isEraserMode  = false
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 68)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color.purple.opacity(0.12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16)
-                                    .strokeBorder(Color.purple.opacity(0.3),
-                                                  style: StrokeStyle(lineWidth: 1.5, dash: [4]))
-                            )
-                    )
+
+                    Button(action: onBuildBrush) {
+                        VStack(spacing: 4) {
+                            Text("🔮")
+                                .font(.system(size: 26))
+                            Text("Make")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.purple)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 58)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
+                .padding(6)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(Color.purple.opacity(0.07))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .strokeBorder(Color.purple.opacity(0.35),
+                                              style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                        )
+                )
 
                 Spacer(minLength: 0)
             }
