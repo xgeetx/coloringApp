@@ -4,6 +4,7 @@ import SwiftUI
 
 struct DrawingCanvasView: View {
     @ObservedObject var state: DrawingState
+    @State private var lastMagnification: CGFloat = 1.0
 
     var body: some View {
         Canvas { ctx, size in
@@ -39,7 +40,7 @@ struct DrawingCanvasView: View {
             }
         }
         .contentShape(Rectangle())
-        .gesture(drawGesture)
+        .gesture(drawGesture.simultaneously(with: pinchGesture))
     }
 
     // MARK: - Gesture
@@ -62,6 +63,18 @@ struct DrawingCanvasView: View {
                 } else {
                     state.endStroke()
                 }
+            }
+    }
+
+    private var pinchGesture: some Gesture {
+        MagnificationGesture()
+            .onChanged { scale in
+                let delta = scale / lastMagnification
+                lastMagnification = scale
+                state.brushSize = (state.brushSize * delta).clamped(to: 6...80)
+            }
+            .onEnded { _ in
+                lastMagnification = 1.0
             }
     }
 
