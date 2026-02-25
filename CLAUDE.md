@@ -1,3 +1,7 @@
+## ⚡ SESSION RESUME
+At the start of this session, read `docs/plans/2026-02-25-spelling-fun.md`, tell the user
+you're ready to continue from Task 1 (create SpellingView.swift), then wait for their go-ahead.
+
 # Coloring App — Project Memory
 
 ## Project Overview
@@ -31,7 +35,7 @@ coloringApp/
 │   └── project.xcworkspace/contents.xcworkspacedata
 ├── ColoringApp/
 │   ├── ColoringApp.swift           — @main entry; root is HubView()
-│   ├── AppRegistry.swift           — MiniAppDescriptor + AppRegistry.apps (4 tiles: Coloring Fun live, Kids Mode live, 2 placeholders)
+│   ├── AppRegistry.swift           — MiniAppDescriptor + AppRegistry.apps (🎨 Coloring Fun, 🌈 Kids Mode live; ✏️ Spelling Fun pending; 1 placeholder)
 │   ├── HubView.swift               — 2×2 grid launcher, triple-tap title to rename
 │   ├── AppRequestView.swift        — voice dictation → email app request flow
 │   ├── ContentView.swift           — parent-mode root: @State activeFlyout + strip/canvas/flyout layout
@@ -39,27 +43,31 @@ coloringApp/
 │   ├── DrawingPersistence.swift    — Codable wrappers for Color, Stroke, StampPlacement, DrawingSnapshot
 │   ├── DrawingCanvasView.swift     — Canvas rendering + DragGesture + MagnificationGesture; accepts dismissFlyout callback
 │   ├── ColorPaletteView.swift      — 16 Crayola swatches + system ColorPicker (bottom bar)
-│   ├── ToolsView.swift             — BrushesFlyoutView, SizeFlyoutView, OpacityFlyoutView, PoolPickerView, helper buttons
+│   ├── ToolsView.swift             — BrushesFlyoutView (direct pool listing), SizeFlyoutView, OpacityFlyoutView, PoolPickerView
 │   ├── StampsView.swift            — StampsFlyoutView (with onDismiss), StampButton
 │   ├── TopToolbarView.swift        — Home, Title, BG color picker, Undo, Clear, Eraser toggle
-│   ├── FlyoutContainerView.swift   — Generic flyout wrapper: slide animation, X button, shadow, white bg
+│   ├── FlyoutContainerView.swift   — Generic flyout wrapper: slide animation, X button, shadow
 │   ├── LeftStripView.swift         — 44pt icon strip (brush/size/opacity); StripIconButton shared component
 │   ├── RightStripView.swift        — 44pt icon strip (stamps only)
-│   ├── BrushBuilderView.swift      — Full brush builder (style + shape + sliders + name); currently sheet in parent mode
-│   ├── KidContentView.swift        — [PLANNED] Kid-mode root: large brush strip, stamp grid, bottom colors
-│   ├── KidBrushBuilderView.swift   — [PLANNED] Kid brush builder sheet with live interactive canvas preview
+│   ├── BrushBuilderView.swift      — Full brush builder (style + shape + sliders + name); opens as .sheet
+│   ├── KidContentView.swift        — Kid-mode root: texture brush strip (left), 8-stamp grid (right), canvas (centre), ColorPalette (bottom), minimal top toolbar; includes KidBrushPreview + KidBrushButton; iOS 15 compat via @available(iOS 16) sheet helpers
+│   ├── KidBrushBuilderView.swift   — Kid texture designer: 4 texture tiles (Crayon/Marker/Chalk/Glitter via KidBrushPreview), contextual slider (soft↔bold or dense↔spread), live-draw canvas, auto-names + auto-selects on save; KidTexturePickerTile struct
+│   └── SpellingView.swift          — [PENDING] Spelling Fun: voice → letter tiles auto-animate from keyboard, drag-to-speak
 │   └── Info.plist
 └── docs/
     ├── feedback/
-    │   ├── wife_feedback_02_24_2026.rtf  — text feedback (all 11 items now addressed)
+    │   ├── wife_feedback_02_24_2026.rtf  — text feedback (all 11 items addressed)
     │   └── wife_feedback_02_24_2026.caf  — voice recording (untranscribed)
+    ├── ideas/
+    │   └── letter_drawing              — source idea for Spelling Fun (voice → big draggable letters)
     └── plans/
-        ├── 2026-02-23-hub-architecture.md          — executed
-        ├── 2026-02-24-drawing-persistence.md       — executed
-        ├── 2026-02-24-wife-feedback-fixes.md       — executed (11 UX fixes)
-        ├── 2026-02-24-flyout-popover-architecture-design.md  — design doc; implemented this session
-        └── 2026-02-24-kid-mode-and-parent-fixes.md — PENDING; see plan for task list
-            (tasks.json co-located)
+        ├── 2026-02-23-hub-architecture.md                      — executed
+        ├── 2026-02-24-drawing-persistence.md                   — executed
+        ├── 2026-02-24-wife-feedback-fixes.md                   — executed (11 UX fixes)
+        ├── 2026-02-24-flyout-popover-architecture-design.md    — design doc; implemented
+        ├── 2026-02-24-kid-mode-and-parent-fixes.md             — executed (2026-02-25)
+        ├── 2026-02-25-kid-mode-ux-fixes.md                     — executed (2026-02-25)
+        └── 2026-02-25-spelling-fun.md                          — PENDING (Task 1 next: create SpellingView.swift)
 ```
 
 ## Architecture & Key Design Decisions
@@ -73,7 +81,7 @@ coloringApp/
 ### AppRegistry
 - `MiniAppDescriptor: Identifiable & Equatable` (Equatable is id-based — closures block synthesis)
 - `makeRootView: () -> AnyView` — each tile declares its own root
-- Current tiles: 🎨 Coloring Fun (`ContentView`), 🌈 Kids Mode (`KidContentView` — **planned, not yet built**), 🧩 Puzzle Play (placeholder), 📖 Story Time (placeholder)
+- Current tiles: 🎨 Coloring Fun (`ContentView`), 🌈 Kids Mode (`KidContentView`), ✏️ Spelling Fun (`SpellingView` — pending), 📖 Story Time (placeholder)
 - Add new app: one entry in `AppRegistry.apps`, no other changes
 
 ### Flyout Panel Architecture (ContentView — parent mode)
@@ -86,29 +94,45 @@ coloringApp/
 - Strip background is `.ultraThinMaterial` — **must not use** `.white.opacity(0.75)` (invisible on light gradient)
 - Transitions: `.move(edge:)` + `.animation(.spring(response: 0.35, dampingFraction: 0.75), value: activeFlyout)`
 
-### Kid Mode Architecture (planned — not yet implemented)
+### Kid Mode Architecture (implemented 2026-02-25; UX polished 2026-02-25)
 - Separate `KidContentView` with its own `@StateObject var state = DrawingState()` — drawings are independent from parent mode
-- Left strip: texture brushes only (Crayon, Marker, Chalk, Sparkle + user-created) — no pattern-stamp brushes (hearts/flowers/confetti feel like "icons dragging around")
+- Left strip: texture brushes only (Crayon, Marker, Chalk, Sparkle + user-created) — no pattern-stamp brushes
 - Right panel: 8 always-visible stamps + "More ↓" button → `StampsFlyoutView` sheet
-- `KidBrushBuilderView`: sheet (not fullscreen), live-draw preview canvas, 5 shape buttons, one spread slider, "Use This Brush!" save — no name entry
-- No flyouts for brush/size/opacity in kid mode: everything always visible, large targets
-- See `docs/plans/2026-02-24-kid-mode-and-parent-fixes.md` for full implementation plan
+- `KidBrushButton` shows a live `KidBrushPreview` (wavy Canvas stroke) instead of an emoji icon
+- `KidBrushPreview` — Canvas view drawing a wave in the brush's actual texture style; shared by strip and `KidTexturePickerTile`
+- `KidBrushBuilderView`: texture designer — 4 tiles (Crayon/Marker/Chalk/Glitter), contextual slider (soft↔bold for texture brushes, dense↔spread for Glitter), live-draw canvas preview, auto-names + auto-selects on save
+- `sizeVariation` wired into `renderCrayon`/`renderMarker`/`renderChalk` as `opacityScale` for non-system brushes only — system brushes unchanged
+- No flyouts in kid mode: everything always visible, large targets (68pt buttons)
+- Portrait fix: `DrawingCanvasView` gets `.frame(maxWidth: .infinity, maxHeight: .infinity)`; main HStack gets `.frame(maxHeight: .infinity)`
+- iOS 15 compat: `presentationDetents` wrapped in `kidSheetDetents()` / `kidDragIndicator()` `@ViewBuilder` extensions using `#available(iOS 16, *)`
+
+### Spelling Fun Architecture (planned 2026-02-25 — see docs/plans/2026-02-25-spelling-fun.md)
+- Single `SpellingView.swift` — self-contained mini-app, no shared state with drawing apps
+- State machine: `.idle → .listening → .confirm(word) → .spelling(word)` in `SpellingViewModel (@MainActor)`
+- Word extraction: scans for "spell X" pattern in transcript; falls back to last non-filler word
+- `.spelling` phase: top 55% = draggable letter stage; bottom 45% = read-only keyboard display
+- Letters **auto-animate** on entry: spring from keyboard zone (large positive Y offset) to scattered stage positions, staggered at 0.12s per letter — no user action required
+- Keyboard display: all 26 ABC-order letters; word's letters highlighted in purple — purely visual, not interactive
+- **Only interaction**: `DragGesture(minimumDistance: 4)` on tiles — `.onChanged` fires `speakLetter()` once per gesture (guarded by `hasSpokeThisDrag`), resets on `.onEnded`
+- `AVSpeechSynthesizer.stopSpeaking(at: .immediate)` called before each new utterance to prevent queue buildup
+- pbxproj UUIDs: PBXBuildFile `E6F6A7B8C9D0E1F2A3B4C5D6`, PBXFileRef `F7A7B8C9D0E1F2A3B4C5D6E7`
+
+### BrushesFlyoutView (parent mode)
+- User brushes shown directly below system brushes via `state.brushPool.filter { !$0.isSystem }` — no slot paradigm in flyout UI
+- `BrushBuilderView` opens as `.sheet` (was `fullScreenCover` — jarring, felt like leaving the app)
+- `PoolPickerView` struct retained in `ToolsView.swift` but not used from flyout
 
 ### Drawing Engine
 - `DrawingState` is `ObservableObject`; created fresh per session via `@StateObject` in root view
 - Each hub→app navigation creates a new root view → new `DrawingState` → `init()` loads from disk (seamless restore)
 - 8 system brushes (fixed UUIDs): Crayon, Marker, Sparkle, Chalk, Hearts, Dots, Flowers, Confetti
 - `BrushBaseStyle`: `.crayon` (5-pass textured, independent x/y jitter), `.marker`, `.chalk`, `.patternStamp`
+- `PatternShape.path(center:size:)` — shape math centralized in `Models.swift`; `DrawingCanvasView.pathForShape` and preview canvases all delegate to it
 - Eraser: `BrushDescriptor.eraser` (UUID all-zeros), `renderHardErase()` always at opacity 1.0
 - Pinch gesture resizes brush (6–80pt); `isPinching` flag prevents stroke artifacts
 - Stamp mode: tap places emoji at `brushSize × 2.8`; category switch auto-selects first stamp
 - Undo: parallel stacks `strokeHistory` + `stampHistory`
 - Per-stroke opacity baked in at `beginStroke()`; eraser always 1.0
-
-### Custom Brush UX Gap (known issue, fix in plan)
-- User creates a brush in `BrushBuilderView` → it's added to `brushPool` and persisted correctly
-- BUT `BrushesFlyoutView` only shows 3 slot buttons; new brushes are invisible until long-pressed into a slot
-- Fix (planned): show `brushPool.filter { !$0.isSystem }` directly in the flyout, remove slot paradigm from flyout UI
 
 ### Drawing Persistence
 - Saved to `Documents/currentDrawing.json` (`.atomic` write)
@@ -128,18 +152,20 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 - Deployment target: iOS 15.0
 - Required device capability: `arm64`
 - `UIDeviceFamily` removed from Info.plist — `TARGETED_DEVICE_FAMILY` build setting handles it
+- `DEVELOPMENT_TEAM = T2DJZ649J4` committed in both Debug/Release configs — survives `git pull` on Mac without clearing signing
 
 ## Known Gotchas
 - `MiniAppDescriptor` needs explicit `Equatable` — closures block synthesis
-- New files need 4 manual insertions in `project.pbxproj`: PBXBuildFile, PBXFileReference, PBXGroup children, PBXSourcesBuildPhase
+- New files need ALL 4 manual insertions in `project.pbxproj`: **PBXBuildFile**, **PBXFileReference**, **PBXGroup children**, **PBXSourcesBuildPhase** — missing the last two causes "cannot find X in scope" build error even though the file physically exists
 - SSH deploys to iPad fail as `claude` — signing cert in `garrettshannon`'s keychain; use Xcode or Mac terminal as `garrettshannon`
-- `AVAudioSession` must be configured before `inputNode` access in `AppRequestView`
-- `SFSpeechRecognizer` callbacks are off main thread — always dispatch to main
+- `AVAudioSession` must be configured before `inputNode` access (see AppRequestView / SpellingView pattern)
+- `SFSpeechRecognizer` callbacks are off main thread — always dispatch to main (or use `@MainActor` class)
 - `foregroundStyle` ternary needs explicit `Color.` types — Swift inference fails across `some ShapeStyle` / `Color`
 - `.onChange(of:)` two-parameter form is correct for iOS 15/16 (deprecation warning on 17+ unavoidable)
 - Strip background must use `.ultraThinMaterial` not `.white.opacity(0.75)` — the latter is invisible on the app's light pastel gradient
-- `BrushBuilderView` was `fullScreenCover` — jarring, feels like leaving the app. Fixed to `.sheet` in the pending plan.
+- `presentationDetents` / `presentationDragIndicator` are iOS 16+ — wrap in `#available(iOS 16, *)` `@ViewBuilder` helpers for iOS 15 compat
 - Mac `git pull` can fail if Xcode auto-modified `project.pbxproj` locally — run `git stash` on Mac first
+- `AVSpeechSynthesizer`: call `stopSpeaking(at: .immediate)` before each new utterance to prevent a speech queue backlog
 
 ## Current Status (as of 2026-02-25)
 
@@ -148,19 +174,18 @@ Flyout widths: 260pt, slide over canvas. Canvas gains ~112pt vs old fixed-panel 
 - All 11 wife-feedback UX fixes
 - Flyout panel architecture (strips + slide-in panels)
 
-### Implemented this session, not yet on device:
-- Flyout panel rearchitecture (committed, built on simulator ✅, not deployed to iPad)
+### Built on simulator ✅, not yet deployed to iPad:
+- Flyout panel rearchitecture
+- Kid Mode (`KidContentView` + `KidBrushBuilderView`)
+- Parent mode fixes: BrushBuilder as sheet, direct user brush listing, strip contrast
+- Kid Mode UX polish: texture previews in brush strip, portrait layout fix, texture designer builder, sizeVariation opacity scaling (untested as of 2026-02-25)
 
-### Known issues in current build (fixes in pending plan):
-- Custom brushes invisible after creation (slot paradigm hidden — UX gap)
-- `BrushBuilderView` is `fullScreenCover` (should be `.sheet`)
-- Strip contrast low in portrait mode (`.ultraThinMaterial` fix pending)
-
-### Next planned work:
-- **Kid Mode + Parent Fixes** — `docs/plans/2026-02-24-kid-mode-and-parent-fixes.md` (status: **pending**)
-  - 8 tasks: KidContentView, KidBrushBuilderView, pbxproj registration, AppRegistry tile, BrushBuilder sheet fix, pool display fix, strip contrast fix, final build
+### Planned — not yet built:
+- Spelling Fun (`SpellingView`) — plan at docs/plans/2026-02-25-spelling-fun.md
 
 ### Untested on device (as of 2026-02-25):
+- Kid Mode layout (portrait + landscape)
+- Kid brush builder live canvas preview
 - Flyout panel architecture (portrait + landscape)
 - Voice dictation → email in AppRequestView
 - Drawing persistence across app restarts
