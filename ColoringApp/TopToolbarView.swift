@@ -152,16 +152,35 @@ struct BackgroundColorPickerView: View {
     @Environment(\.dismiss) var dismiss
 
     private let bgColors: [(String, Color)] = [
-        ("Cream",    Color(r: 255, g: 250, b: 235)),
-        ("White",    Color(r: 255, g: 255, b: 255)),
-        ("Sky",      Color(r: 204, g: 229, b: 255)),
-        ("Mint",     Color(r: 204, g: 255, b: 229)),
-        ("Peach",    Color(r: 255, g: 220, b: 200)),
-        ("Lavender", Color(r: 230, g: 210, b: 255)),
-        ("Lemon",    Color(r: 255, g: 255, b: 200)),
-        ("Rose",     Color(r: 255, g: 210, b: 220)),
-        ("Black",    Color(r: 20,  g: 20,  b: 20)),
-        ("Night",    Color(r: 15,  g: 20,  b: 50)),
+        // Neutrals
+        ("Cream",      Color(r: 255, g: 250, b: 235)),
+        ("White",      Color(r: 255, g: 255, b: 255)),
+        ("Pearl",      Color(r: 240, g: 235, b: 220)),
+        // Pastels
+        ("Sky",        Color(r: 204, g: 229, b: 255)),
+        ("Mint",       Color(r: 204, g: 255, b: 229)),
+        ("Peach",      Color(r: 255, g: 220, b: 200)),
+        ("Lavender",   Color(r: 230, g: 210, b: 255)),
+        ("Lemon",      Color(r: 255, g: 255, b: 200)),
+        ("Rose",       Color(r: 255, g: 210, b: 220)),
+        ("Baby Blue",  Color(r: 180, g: 220, b: 255)),
+        ("Honeydew",   Color(r: 210, g: 255, b: 210)),
+        ("Blush",      Color(r: 255, g: 200, b: 210)),
+        // Brights
+        ("Sunny",      Color(r: 255, g: 240, b: 100)),
+        ("Coral",      Color(r: 255, g: 160, b: 130)),
+        ("Aqua",       Color(r: 130, g: 220, b: 220)),
+        ("Lilac",      Color(r: 200, g: 170, b: 255)),
+        // Darks
+        ("Slate",      Color(r: 80,  g: 100, b: 130)),
+        ("Forest",     Color(r: 40,  g: 80,  b: 60)),
+        ("Midnight",   Color(r: 20,  g: 25,  b: 60)),
+        ("Charcoal",   Color(r: 55,  g: 55,  b: 65)),
+        ("Black",      Color(r: 20,  g: 20,  b: 20)),
+        // Warm darks
+        ("Mocha",      Color(r: 80,  g: 50,  b: 30)),
+        ("Burgundy",   Color(r: 90,  g: 20,  b: 40)),
+        ("Dark Teal",  Color(r: 20,  g: 80,  b: 80)),
     ]
 
     var body: some View {
@@ -171,34 +190,46 @@ struct BackgroundColorPickerView: View {
                 .padding(.top, 16)
                 .padding(.horizontal, 16)
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
-                ForEach(bgColors, id: \.0) { name, color in
-                    Button {
-                        state.backgroundColor = color
-                        dismiss()
-                    } label: {
-                        VStack(spacing: 4) {
-                            Circle()
-                                .fill(color)
-                                .frame(width: 48, height: 48)
-                                .overlay(
-                                    Circle().strokeBorder(
-                                        state.backgroundColor == color ? Color.accentColor : Color.gray.opacity(0.3),
-                                        lineWidth: state.backgroundColor == color ? 3 : 1
+            ScrollView {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 12) {
+                    ForEach(bgColors, id: \.0) { name, color in
+                        Button {
+                            state.backgroundColor = color
+                            dismiss()
+                        } label: {
+                            VStack(spacing: 4) {
+                                Circle()
+                                    .fill(color)
+                                    .frame(width: 48, height: 48)
+                                    .overlay(
+                                        Circle().strokeBorder(
+                                            state.backgroundColor == color ? Color.accentColor : Color.gray.opacity(0.3),
+                                            lineWidth: state.backgroundColor == color ? 3 : 1
+                                        )
                                     )
-                                )
-                                .shadow(color: .black.opacity(0.15), radius: 3)
-                            Text(name)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(.secondary)
+                                    .shadow(color: .black.opacity(0.15), radius: 3)
+                                Text(name)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
+
+                    // Custom color picker as final grid item
+                    VStack(spacing: 4) {
+                        ColorPicker("", selection: $state.backgroundColor, supportsOpacity: false)
+                            .labelsHidden()
+                            .frame(width: 48, height: 48)
+                        Text("Custom")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
         }
-        .frame(width: 340)
+        .frame(width: 340, height: 420)
     }
 }
