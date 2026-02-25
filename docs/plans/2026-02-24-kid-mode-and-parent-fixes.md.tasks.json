@@ -1,0 +1,14 @@
+{
+  "planPath": "docs/plans/2026-02-24-kid-mode-and-parent-fixes.md",
+  "tasks": [
+    {"id": 9,  "subject": "Task 1: Create KidContentView.swift",                  "status": "pending"},
+    {"id": 10, "subject": "Task 2: Create KidBrushBuilderView.swift",             "status": "pending", "blockedBy": [9]},
+    {"id": 11, "subject": "Task 3: Register new files in project.pbxproj",        "status": "pending", "blockedBy": [9, 10]},
+    {"id": 12, "subject": "Task 4: Add Kids Mode tile to AppRegistry.swift",       "status": "pending", "blockedBy": [11]},
+    {"id": 13, "subject": "Task 5: Fix BrushBuilderView — sheet",                 "status": "pending"},
+    {"id": 14, "subject": "Task 6: Fix BrushesFlyoutView — full brush pool",      "status": "pending"},
+    {"id": 15, "subject": "Task 7: Fix strip visual contrast",                    "status": "pending"},
+    {"id": 16, "subject": "Task 8: Final build, push, and install check",         "status": "pending", "blockedBy": [12, 13, 14, 15]}
+  ],
+  "lastUpdated": "2026-02-24"
+}
