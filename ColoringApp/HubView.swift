@@ -5,6 +5,9 @@ import SwiftUI
 struct HubView: View {
     @State private var activeApp: MiniAppDescriptor? = nil
     @State private var requestingApp: MiniAppDescriptor? = nil
+    @State private var hubTitle: String = UserDefaults.standard.string(forKey: "hubTitle") ?? "Triple Tap here to change Name"
+    @State private var showRenameAlert = false
+    @State private var pendingTitle = ""
 
     private let columns = [
         GridItem(.flexible(), spacing: 24),
@@ -29,7 +32,7 @@ struct HubView: View {
                 VStack(spacing: 8) {
                     Text("🌟")
                         .font(.system(size: 48))
-                    Text("Kids Fun Zone")
+                    Text(hubTitle)
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
@@ -38,6 +41,10 @@ struct HubView: View {
                                 endPoint: .trailing
                             )
                         )
+                        .onTapGesture(count: 3) {
+                            pendingTitle = hubTitle == "Triple Tap here to change Name" ? "" : hubTitle
+                            showRenameAlert = true
+                        }
                 }
                 .padding(.top, 36)
 
@@ -63,6 +70,17 @@ struct HubView: View {
         }
         .sheet(item: $requestingApp) { app in
             AppRequestView(app: app)
+        }
+        .alert("Name Your Zone", isPresented: $showRenameAlert) {
+            TextField("Enter a name", text: $pendingTitle)
+            Button("Save") {
+                let trimmed = pendingTitle.trimmingCharacters(in: .whitespaces)
+                hubTitle = trimmed.isEmpty ? "Triple Tap here to change Name" : trimmed
+                UserDefaults.standard.set(hubTitle, forKey: "hubTitle")
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Triple-tap the title any time to change it.")
         }
     }
 }
