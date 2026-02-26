@@ -143,6 +143,12 @@ struct LetterGlyphPath {
         return Path(strokedCG)
     }
 
+    /// Even-odd containment — required because Core Text glyph paths use even-odd winding
+    /// for counters (e.g. the hole in P, B, D, O, etc.).
+    func eoContains(point: CGPoint) -> Bool {
+        path.cgPath.contains(point, using: .evenOdd)
+    }
+
     func isNearOutline(point: CGPoint, bandWidth: CGFloat) -> Bool {
         let band = strokedBand(width: bandWidth)
         return band.contains(point)
@@ -349,7 +355,7 @@ final class LetterTraceViewModel: ObservableObject {
                 // Easy: any drag inside the filled letter counts
                 if let gp = glyphPath {
                     let localPt = CGPoint(x: pt.x - letterOrigin.x, y: pt.y - letterOrigin.y)
-                    if gp.path.contains(localPt) {
+                    if gp.eoContains(point: localPt) {
                         tiles[tileIndex].effectiveDragDistance += dist
                     }
                 } else {
@@ -388,8 +394,14 @@ final class LetterTraceViewModel: ObservableObject {
     func checkCompletion(tileIndex: Int, outlinePointCount: Int) {
         guard tileIndex < tiles.count, !tiles[tileIndex].isComplete else { return }
         guard outlinePointCount > 0 else { return }
+        // Scale required coverage down for complex letters with long perimeters.
+        // Reference ~30 points (simple letter like C or L). Letters with more points
+        // get a reduced requirement via sqrt scaling so W/M aren't punishing.
+        let referenceCount: CGFloat = 30
+        let scale = min(1.0, sqrt(referenceCount / CGFloat(outlinePointCount)))
+        let adjustedCoverage = difficulty.requiredCoverage * scale
         let coverage = CGFloat(tiles[tileIndex].coveredCheckpoints.count) / CGFloat(outlinePointCount)
-        guard coverage >= difficulty.requiredCoverage else { return }
+        guard coverage >= adjustedCoverage else { return }
         tiles[tileIndex].isComplete = true
         let letter = tiles[tileIndex].letter
         synthesizer.stopSpeaking(at: .immediate)
@@ -894,9 +906,6 @@ struct TracingLetterView: View {
         GeometryReader { geo in
             let letter = tile?.letter ?? ""
             let paintPoints = tile?.paintPoints ?? []
-            let outlineCount = glyphData?.outlinePoints.count ?? 1
-            let coveredCount = tile?.coveredCheckpoints.count ?? 0
-            let progress = outlineCount > 0 ? min(1.0, CGFloat(coveredCount) / CGFloat(outlineCount)) : 0
             let fontSize = min(geo.size.width, geo.size.height) * 0.95
             let paintRadius = max(20, fontSize * 0.06)
 
@@ -911,7 +920,7 @@ struct TracingLetterView: View {
                     if vm.difficulty == .easy {
                         glyph.path
                             .offsetBy(dx: letterOrigin.x, dy: letterOrigin.y)
-                            .fill(Color.gray.opacity(0.06))
+                            .fill(Color.gray.opacity(0.06), style: FillStyle(eoFill: true))
                     }
 
                     // Dashed outline guide
@@ -939,20 +948,28 @@ struct TracingLetterView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                // Circular progress ring — scaled to letter size
-                let ringSize = max(geo.size.width, geo.size.height) * 0.5 + 40
-                Circle()
-                    .trim(from: 0, to: progress)
-                    .stroke(
-                        AngularGradient(
-                            colors: [.purple, .pink, .orange, .yellow, .green, .blue, .purple],
-                            center: .center
-                        ),
-                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .frame(width: ringSize, height: ringSize)
-                    .opacity(0.6)
+                // Checkpoint dots along the letter outline — light up as covered
+                if let glyph = glyphData {
+                    let covered = tile?.coveredCheckpoints ?? []
+                    Canvas { ctx, _ in
+                        let dotRadius: CGFloat = max(6, fontSize * 0.018)
+                        for (idx, outlinePt) in glyph.outlinePoints.enumerated() {
+                            let viewPt = CGPoint(x: outlinePt.x + letterOrigin.x,
+                                                 y: outlinePt.y + letterOrigin.y)
+                            let rect = CGRect(x: viewPt.x - dotRadius, y: viewPt.y - dotRadius,
+                                              width: dotRadius * 2, height: dotRadius * 2)
+                            if covered.contains(idx) {
+                                let hue = Double(idx) / max(1, Double(glyph.outlinePoints.count))
+                                let color = Color(hue: hue, saturation: 0.85, brightness: 1.0)
+                                ctx.fill(Path(ellipseIn: rect), with: .color(color))
+                            } else {
+                                ctx.fill(Path(ellipseIn: rect),
+                                         with: .color(Color.gray.opacity(0.18)))
+                            }
+                        }
+                    }
+                    .allowsHitTesting(false)
+                }
             }
             .contentShape(Rectangle())
             .gesture(
@@ -993,10 +1010,10 @@ struct TracingLetterView: View {
     @ViewBuilder
     private func paintMask(glyph: LetterGlyphPath) -> some View {
         if vm.difficulty == .easy {
-            // Full letter fill as mask
+            // Full letter fill as mask (even-odd for correct counters in P, B, D, etc.)
             glyph.path
                 .offsetBy(dx: letterOrigin.x, dy: letterOrigin.y)
-                .fill(Color.white)
+                .fill(Color.white, style: FillStyle(eoFill: true))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             // Outline band as mask
