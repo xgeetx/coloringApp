@@ -16,30 +16,32 @@ struct DrawingCanvasView: View {
                 with: .color(state.backgroundColor)
             )
 
-            // 2. Stamps FIRST — strokes and eraser render on top
-            for stamp in state.stamps {
-                let fontSize = stamp.size * 0.72
-                let rect = CGRect(
-                    x: stamp.location.x - stamp.size / 2,
-                    y: stamp.location.y - stamp.size / 2,
-                    width: stamp.size,
-                    height: stamp.size
-                )
-                ctx.drawLayer { layerCtx in
-                    layerCtx.opacity = stamp.opacity
-                    layerCtx.draw(
-                        Text(stamp.emoji).font(.system(size: fontSize)),
-                        in: rect
-                    )
+            // 2. Drawing elements
+            if state.stampsAlwaysOnTop {
+                // Stamps-on-top mode: all strokes first, then all stamps
+                for element in state.drawingElements {
+                    if case .stroke(let stroke) = element {
+                        render(stroke: stroke, in: ctx)
+                    }
+                }
+                for element in state.drawingElements {
+                    if case .stamp(let stamp) = element {
+                        renderStamp(stamp, in: ctx)
+                    }
+                }
+            } else {
+                // Creation-order mode: render in order
+                for element in state.drawingElements {
+                    switch element {
+                    case .stroke(let stroke):
+                        render(stroke: stroke, in: ctx)
+                    case .stamp(let stamp):
+                        renderStamp(stamp, in: ctx)
+                    }
                 }
             }
 
-            // 3. Committed strokes (on top of stamps)
-            for stroke in state.strokes {
-                render(stroke: stroke, in: ctx)
-            }
-
-            // 4. In-progress stroke (topmost)
+            // 3. In-progress stroke (topmost)
             if let live = state.currentStroke {
                 render(stroke: live, in: ctx)
             }
@@ -123,6 +125,23 @@ struct DrawingCanvasView: View {
     }
 
     // MARK: - Rendering
+
+    private func renderStamp(_ stamp: StampPlacement, in ctx: GraphicsContext) {
+        let fontSize = stamp.size * 0.72
+        let rect = CGRect(
+            x: stamp.location.x - stamp.size / 2,
+            y: stamp.location.y - stamp.size / 2,
+            width: stamp.size,
+            height: stamp.size
+        )
+        ctx.drawLayer { layerCtx in
+            layerCtx.opacity = stamp.opacity
+            layerCtx.draw(
+                Text(stamp.emoji).font(.system(size: fontSize)),
+                in: rect
+            )
+        }
+    }
 
     private func render(stroke: Stroke, in ctx: GraphicsContext) {
         guard !stroke.points.isEmpty else { return }

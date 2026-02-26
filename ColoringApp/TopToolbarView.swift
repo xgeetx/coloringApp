@@ -98,6 +98,15 @@ struct TopToolbarView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(state.isEraserMode ? Color.orange : Color.clear, lineWidth: 2)
             )
+
+            // Stamps layer toggle
+            ToolbarButton(
+                icon: state.stampsAlwaysOnTop ? "square.stack.3d.up.fill" : "square.stack.3d.up",
+                label: state.stampsAlwaysOnTop ? "On Top" : "Mixed",
+                color: .teal,
+                disabled: false,
+                action: { state.stampsAlwaysOnTop.toggle() }
+            )
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)

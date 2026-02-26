@@ -241,6 +241,20 @@ let allStampCategories: [StampCategory] = [
     ]),
 ]
 
+// MARK: - Unified Drawing Element
+
+enum DrawingElement: Identifiable {
+    case stroke(Stroke)
+    case stamp(StampPlacement)
+
+    var id: UUID {
+        switch self {
+        case .stroke(let s): return s.id
+        case .stamp(let s):  return s.id
+        }
+    }
+}
+
 // MARK: - Drawing State (ObservableObject)
 
 class DrawingState: ObservableObject {
@@ -258,14 +272,26 @@ class DrawingState: ObservableObject {
     @Published var brushPool: [BrushDescriptor] = []
     @Published var slotAssignments: [UUID?] = [nil, nil, nil]
 
-    // Drawing data
-    @Published var strokes: [Stroke] = []
-    @Published var stamps: [StampPlacement] = []
+    // Drawing data — unified ordered list
+    @Published var drawingElements: [DrawingElement] = []
     @Published var currentStroke: Stroke? = nil
+    @Published var stampsAlwaysOnTop: Bool = false
 
-    // Undo stacks
-    private var strokeHistory: [[Stroke]] = []
-    private var stampHistory: [[StampPlacement]] = []
+    // Undo stack
+    private var elementHistory: [[DrawingElement]] = []
+
+    // Computed filters for code that reads strokes/stamps separately
+    var strokes: [Stroke] {
+        drawingElements.compactMap {
+            if case .stroke(let s) = $0 { return s } else { return nil }
+        }
+    }
+
+    var stamps: [StampPlacement] {
+        drawingElements.compactMap {
+            if case .stamp(let s) = $0 { return s } else { return nil }
+        }
+    }
 
     init() {
         loadPersistedState()
@@ -311,45 +337,46 @@ class DrawingState: ObservableObject {
 
     func endStroke() {
         guard let stroke = currentStroke else { return }
-        strokeHistory.append(strokes)
-        strokes.append(stroke)
+        elementHistory.append(drawingElements)
+        drawingElements.append(.stroke(stroke))
         currentStroke = nil
         persistDrawing()
     }
 
     func placeStamp(at point: CGPoint) {
-        stampHistory.append(stamps)
-        stamps.append(StampPlacement(
+        elementHistory.append(drawingElements)
+        drawingElements.append(.stamp(StampPlacement(
             emoji:    selectedStamp,
             location: point,
             size:     brushSize * 2.8,
             opacity:  Double(brushOpacity)
-        ))
+        )))
         persistDrawing()
     }
 
     func removeStamp(id: UUID) {
-        stampHistory.append(stamps)
-        stamps.removeAll { $0.id == id }
+        elementHistory.append(drawingElements)
+        drawingElements.removeAll {
+            if case .stamp(let s) = $0 { return s.id == id } else { return false }
+        }
         persistDrawing()
     }
 
     func undo() {
-        if !strokeHistory.isEmpty { strokes = strokeHistory.removeLast() }
-        if !stampHistory.isEmpty  { stamps  = stampHistory.removeLast()  }
+        if !elementHistory.isEmpty {
+            drawingElements = elementHistory.removeLast()
+        }
         persistDrawing()
     }
 
     func clear() {
-        strokeHistory.append(strokes)
-        stampHistory.append(stamps)
-        strokes = []
-        stamps = []
+        elementHistory.append(drawingElements)
+        drawingElements = []
         currentStroke = nil
         persistDrawing()
     }
 
-    var canUndo: Bool { !strokeHistory.isEmpty || !stampHistory.isEmpty }
+    var canUndo: Bool { !elementHistory.isEmpty }
 
     // MARK: - Persistence
 
@@ -391,8 +418,7 @@ class DrawingState: ObservableObject {
 
     func persistDrawing() {
         let snapshot = DrawingSnapshot(
-            strokes:         strokes.map { CodableStroke($0) },
-            stamps:          stamps.map  { CodableStampPlacement($0) },
+            elements:        drawingElements.map { CodableDrawingElement($0) },
             backgroundColor: CodableColor(backgroundColor)
         )
         if let data = try? JSONEncoder().encode(snapshot) {
@@ -404,8 +430,7 @@ class DrawingState: ObservableObject {
         guard let data = try? Data(contentsOf: drawingFileURL),
               let snapshot = try? JSONDecoder().decode(DrawingSnapshot.self, from: data)
         else { return }
-        strokes         = snapshot.strokes.map { $0.stroke }
-        stamps          = snapshot.stamps.map  { $0.stampPlacement }
+        drawingElements = snapshot.drawingElements
         backgroundColor = snapshot.backgroundColor.color
     }
 }
