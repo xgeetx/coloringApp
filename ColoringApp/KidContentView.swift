@@ -141,8 +141,10 @@ struct KidContentView: View {
                 .padding(.horizontal, 12)
                 .frame(maxHeight: .infinity)
 
-                // ── Bottom: crayon box colour palette ──
-                KidCrayonBoxView(state: state)
+                // ── Bottom: colour palette ──
+                ColorPaletteView(state: state)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
             }
         }
         .sheet(isPresented: $showKidBuilder) {
