@@ -173,6 +173,15 @@ struct KidTopToolbarView: View {
                 if state.isEraserMode { state.isStampMode = false }
             }
 
+            KidToolbarButton(
+                icon: state.stampsAlwaysOnTop ? "square.stack.3d.up.fill" : "square.stack.3d.up",
+                label: state.stampsAlwaysOnTop ? "On Top" : "Mixed",
+                color: .teal, disabled: false,
+                isActive: state.stampsAlwaysOnTop
+            ) {
+                state.stampsAlwaysOnTop.toggle()
+            }
+
             if !state.isStampMode && !state.isEraserMode {
                 HStack(spacing: 20) {
                     KidSlider(label: "Size",

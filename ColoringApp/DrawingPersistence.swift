@@ -101,10 +101,101 @@ struct CodableStampPlacement: Codable {
     }
 }
 
+// MARK: - Codable Drawing Element
+
+enum CodableDrawingElement: Codable {
+    case stroke(CodableStroke)
+    case stamp(CodableStampPlacement)
+
+    enum CodingKeys: String, CodingKey { case type, data }
+
+    init(_ element: DrawingElement) {
+        switch element {
+        case .stroke(let s): self = .stroke(CodableStroke(s))
+        case .stamp(let s):  self = .stamp(CodableStampPlacement(s))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .stroke(let s):
+            try c.encode("stroke", forKey: .type)
+            try c.encode(s, forKey: .data)
+        case .stamp(let s):
+            try c.encode("stamp", forKey: .type)
+            try c.encode(s, forKey: .data)
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try c.decode(String.self, forKey: .type)
+        switch type {
+        case "stroke": self = .stroke(try c.decode(CodableStroke.self, forKey: .data))
+        case "stamp":  self = .stamp(try c.decode(CodableStampPlacement.self, forKey: .data))
+        default: throw DecodingError.dataCorruptedError(forKey: .type, in: c, debugDescription: "Unknown element type: \(type)")
+        }
+    }
+
+    var element: DrawingElement {
+        switch self {
+        case .stroke(let s): return .stroke(s.stroke)
+        case .stamp(let s):  return .stamp(s.stampPlacement)
+        }
+    }
+}
+
 // MARK: - Drawing Snapshot
 
 struct DrawingSnapshot: Codable {
-    let strokes:         [CodableStroke]
-    let stamps:          [CodableStampPlacement]
+    // New unified format
+    let elements: [CodableDrawingElement]?
+    // Legacy format (kept for backward compat decoding)
+    let strokes: [CodableStroke]?
+    let stamps: [CodableStampPlacement]?
     let backgroundColor: CodableColor
+
+    enum CodingKeys: String, CodingKey {
+        case elements, strokes, stamps, backgroundColor
+    }
+
+    // Encode always uses new format
+    init(elements: [CodableDrawingElement], backgroundColor: CodableColor) {
+        self.elements = elements
+        self.strokes = nil
+        self.stamps = nil
+        self.backgroundColor = backgroundColor
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(elements, forKey: .elements)
+        try c.encode(backgroundColor, forKey: .backgroundColor)
+    }
+
+    // Decode handles both old and new
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        backgroundColor = try c.decode(CodableColor.self, forKey: .backgroundColor)
+        elements = try c.decodeIfPresent([CodableDrawingElement].self, forKey: .elements)
+        strokes  = try c.decodeIfPresent([CodableStroke].self, forKey: .strokes)
+        stamps   = try c.decodeIfPresent([CodableStampPlacement].self, forKey: .stamps)
+    }
+
+    /// Returns unified drawing elements — handles legacy and new format
+    var drawingElements: [DrawingElement] {
+        if let elements = elements {
+            return elements.map { $0.element }
+        }
+        // Legacy: stamps first (old render order), then strokes
+        var result: [DrawingElement] = []
+        if let stamps = stamps {
+            result += stamps.map { .stamp($0.stampPlacement) }
+        }
+        if let strokes = strokes {
+            result += strokes.map { .stroke($0.stroke) }
+        }
+        return result
+    }
 }
