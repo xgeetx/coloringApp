@@ -162,31 +162,46 @@ final class SpellingViewModel: ObservableObject {
 
     private func randomOffsets(count: Int, stageSize: CGSize) -> [CGSize] {
         let tileRadius: CGFloat = 52
+        let minSeparation: CGFloat = 100 // tile is 96pt, so 100pt center-to-center prevents overlap
         let xRange = max(10, stageSize.width / 2 - tileRadius)
         let exclusionBand: CGFloat = 80
 
-        return (0..<count).map { _ in
-            let goUp = Bool.random()
-            let yMin: CGFloat
-            let yMax: CGFloat
-            if goUp {
-                yMin = -(stageSize.height / 2 - tileRadius)
-                yMax = -exclusionBand
-            } else {
-                yMin = exclusionBand
-                yMax = stageSize.height / 2 - tileRadius
+        var placed: [CGSize] = []
+        for _ in 0..<count {
+            var best: CGSize = .zero
+            // Try up to 20 times to find a non-overlapping position
+            for attempt in 0..<20 {
+                let goUp = Bool.random()
+                let yMin: CGFloat
+                let yMax: CGFloat
+                if goUp {
+                    yMin = -(stageSize.height / 2 - tileRadius)
+                    yMax = -exclusionBand
+                } else {
+                    yMin = exclusionBand
+                    yMax = stageSize.height / 2 - tileRadius
+                }
+                let y: CGFloat
+                if yMin < yMax {
+                    y = CGFloat.random(in: yMin...yMax)
+                } else {
+                    y = goUp ? -exclusionBand : exclusionBand
+                }
+                let candidate = CGSize(
+                    width: CGFloat.random(in: -xRange...xRange),
+                    height: y
+                )
+                best = candidate
+                let tooClose = placed.contains { existing in
+                    let dx = candidate.width - existing.width
+                    let dy = candidate.height - existing.height
+                    return sqrt(dx * dx + dy * dy) < minSeparation
+                }
+                if !tooClose { break }
             }
-            let y: CGFloat
-            if yMin < yMax {
-                y = CGFloat.random(in: yMin...yMax)
-            } else {
-                y = goUp ? -exclusionBand : exclusionBand
-            }
-            return CGSize(
-                width: CGFloat.random(in: -xRange...xRange),
-                height: y
-            )
+            placed.append(best)
         }
+        return placed
     }
 
     private func keyboardLaunchOffset(for letter: String, stageSize: CGSize) -> CGSize {
@@ -284,27 +299,42 @@ final class SpellingViewModel: ObservableObject {
 
     func bounceBackOffset(stageSize: CGSize) -> CGSize {
         let tileRadius: CGFloat = 52
+        let minSeparation: CGFloat = 100
         let exclusionBand: CGFloat = 80
         let xRange = max(10, stageSize.width / 2 - tileRadius)
 
-        let goUp = Bool.random()
-        let yMin: CGFloat
-        let yMax: CGFloat
-        if goUp {
-            yMin = -(stageSize.height / 2 - tileRadius)
-            yMax = -exclusionBand
-        } else {
-            yMin = exclusionBand
-            yMax = stageSize.height / 2 - tileRadius
-        }
-        guard yMin < yMax else {
-            return CGSize(width: CGFloat.random(in: -xRange...xRange), height: goUp ? -exclusionBand : exclusionBand)
-        }
+        let filledIDs = Set(slotStates.compactMap { $0.filledTileID })
+        let existingOffsets = stagedTiles.filter { !filledIDs.contains($0.id) }.map { $0.offset }
 
-        return CGSize(
-            width: CGFloat.random(in: -xRange...xRange),
-            height: CGFloat.random(in: yMin...yMax)
-        )
+        for _ in 0..<20 {
+            let goUp = Bool.random()
+            let yMin: CGFloat
+            let yMax: CGFloat
+            if goUp {
+                yMin = -(stageSize.height / 2 - tileRadius)
+                yMax = -exclusionBand
+            } else {
+                yMin = exclusionBand
+                yMax = stageSize.height / 2 - tileRadius
+            }
+            let y: CGFloat
+            if yMin < yMax {
+                y = CGFloat.random(in: yMin...yMax)
+            } else {
+                y = goUp ? -exclusionBand : exclusionBand
+            }
+            let candidate = CGSize(width: CGFloat.random(in: -xRange...xRange), height: y)
+            let tooClose = existingOffsets.contains { existing in
+                let dx = candidate.width - existing.width
+                let dy = candidate.height - existing.height
+                return sqrt(dx * dx + dy * dy) < minSeparation
+            }
+            if !tooClose { return candidate }
+        }
+        // Fallback: return best-effort position
+        let goUp = Bool.random()
+        let y: CGFloat = goUp ? -exclusionBand : exclusionBand
+        return CGSize(width: CGFloat.random(in: -xRange...xRange), height: y)
     }
 
     private func clampOffset(_ offset: CGSize, stageSize: CGSize) -> CGSize {
