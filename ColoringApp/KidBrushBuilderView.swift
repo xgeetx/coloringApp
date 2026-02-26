@@ -141,10 +141,10 @@ struct KidBrushBuilderView: View {
                         Text("spread").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 28)
-                } else if selectedTexture == .crayon {
+                } else if selectedTexture == .chalk {
                     // Slider 1: soft ↔ bold
                     Slider(value: $intensity, in: 0.0...1.0)
-                        .tint(.orange)
+                        .tint(.blue)
                         .padding(.horizontal, 24)
                     HStack {
                         Text("soft").font(.caption).foregroundStyle(.secondary)
@@ -247,7 +247,7 @@ struct KidBrushBuilderView: View {
         case .chalk:
             // Particle cloud matching DrawingCanvasView.renderChalk
             let scale = Double((0.4 + intensity * 1.2).clamped(to: 0.1...1.6))
-            let cSpread = brushSize * 0.6
+            let cSpread = brushSize * 0.6 * grainSpread
             for (i, pt) in previewPoints.enumerated() {
                 for j in 0..<5 {
                     let idx = i * 5 + j
@@ -295,7 +295,7 @@ struct KidBrushBuilderView: View {
             baseStyle: selectedTexture,
             patternShape: selectedTexture == .patternStamp ? .star : nil,
             stampSpacing: selectedTexture == .patternStamp ? stampSpacing
-                        : selectedTexture == .crayon       ? grainSpread
+                        : selectedTexture == .chalk        ? grainSpread
                         : 1.0,
             sizeVariation: selectedTexture != .patternStamp ? intensity : 0.0,
             isSystem: false
