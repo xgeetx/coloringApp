@@ -498,40 +498,6 @@ struct MicPromptView: View {
                     .padding(.horizontal, 34)
             }
 
-            VStack(spacing: 10) {
-                TextField("Type a word", text: $vm.manualWordInput)
-                    .font(.system(size: 24, weight: .bold, design: .rounded))
-                    .textInputAutocapitalization(.characters)
-                    .disableAutocorrection(true)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color.white.opacity(0.82))
-                    )
-                    .padding(.horizontal, 30)
-                    .accessibilityLabel("Typed Word")
-                    .accessibilityHint("Type a word and create letters")
-
-                Button(action: { vm.applyManualWord() }) {
-                    Label("Create Letters", systemImage: "keyboard")
-                        .font(.system(size: 19, weight: .bold, design: .rounded))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 22)
-                        .padding(.vertical, 12)
-                        .background(RoundedRectangle(cornerRadius: 14).fill(Color.blue))
-                }
-                .buttonStyle(.plain)
-            }
-
-            if let validationError = vm.validationError {
-                Text(validationError)
-                    .font(.footnote)
-                    .foregroundColor(.red)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 34)
-            }
-
             if vm.permissionDenied {
                 Label("Microphone access is needed. Check Settings.", systemImage: "mic.slash")
                     .font(.subheadline)
