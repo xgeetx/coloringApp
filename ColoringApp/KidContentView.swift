@@ -33,7 +33,12 @@ let stampSoundMap: [String: String] = [
     "⭐":"Ta-da!", "🌈":"Wow wow!", "☀️":"Shine shine!", "🌙":"Night night!",
     "❤️":"I love you!", "🎈":"Pop pop!", "🎀":"Yay!", "🎁":"Surprise!",
     "🏠":"Home sweet home!", "🚂":"Choo choo!", "🚀":"Blast off!", "🦄":"Magic!",
-    "🍦":"Yummy!", "🍭":"So sweet!", "🎪":"Ta-da ta-da!", "🎠":"Wheee!"
+    "🍦":"Yummy!", "🍭":"So sweet!", "🎪":"Ta-da ta-da!", "🎠":"Wheee!",
+    // Faces
+    "😀":"Ha ha!", "😁":"Hee hee!", "😂":"Ha ha ha!", "🤣":"So funny!",
+    "😄":"Yay!", "😆":"Hee hee hee!", "😊":"Aww!", "😋":"Yummy!",
+    "😍":"So pretty!", "🥰":"Love love!", "🤗":"Hug!", "🥳":"Party time!",
+    "🤩":"Wow!", "😎":"Cool!", "😜":"Silly!", "😢":"Aww!"
 ]
 
 // MARK: - Kid Mode Root View

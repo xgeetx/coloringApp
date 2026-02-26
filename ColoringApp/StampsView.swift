@@ -14,6 +14,7 @@ struct StampsFlyoutView: View {
         Color(r: 130, g: 200, b: 130),  // Insects — green
         Color(r: 255, g: 160, b: 190),  // Plants  — pink
         Color(r: 190, g: 160, b: 230),  // Fun     — purple
+        Color(r: 255, g: 230, b: 100),  // Faces   — yellow
     ]
 
     var body: some View {
