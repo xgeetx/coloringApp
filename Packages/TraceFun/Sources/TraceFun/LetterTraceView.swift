@@ -9,19 +9,16 @@ import CoreText
 struct LetterGlyphPath {
     let path: Path
     let boundingRect: CGRect
+    let outlinePoints: [CGPoint]
 
     static func extract(letter: String, fontSize: CGFloat) -> LetterGlyphPath? {
         let uiFont = UIFont.systemFont(ofSize: fontSize, weight: .black)
         let ctFont = uiFont as CTFont
         guard let firstChar = letter.unicodeScalars.first else { return nil }
-        var glyph = CTFontGetGlyphWithName(ctFont, letter as CFString)
-        if glyph == 0 {
-            // Fallback: map character to glyph
-            let chars = [UniChar(firstChar.value)]
-            var glyphs = [CGGlyph](repeating: 0, count: 1)
-            CTFontGetGlyphsForCharacters(ctFont, chars, &glyphs, 1)
-            glyph = glyphs[0]
-        }
+        let chars = [UniChar(firstChar.value)]
+        var glyphs = [CGGlyph](repeating: 0, count: 1)
+        CTFontGetGlyphsForCharacters(ctFont, chars, &glyphs, 1)
+        let glyph = glyphs[0]
         guard glyph != 0 else { return nil }
         guard let cgPath = CTFontCreatePathForGlyph(ctFont, glyph, nil) else { return nil }
 
@@ -33,7 +30,106 @@ struct LetterGlyphPath {
         let flippedCG = cgPath.copy(using: &flipTransform) ?? cgPath
         let swiftPath = Path(flippedCG)
         let bounds = swiftPath.boundingRect
-        return LetterGlyphPath(path: swiftPath, boundingRect: bounds)
+        let sampled = Self.samplePathPoints(cgPath: flippedCG, spacing: 20)
+        return LetterGlyphPath(path: swiftPath, boundingRect: bounds, outlinePoints: sampled)
+    }
+
+    // MARK: - Path Sampling
+
+    /// Walk all path elements and sample points at regular intervals along the outline.
+    static func samplePathPoints(cgPath: CGPath, spacing: CGFloat) -> [CGPoint] {
+        var points: [CGPoint] = []
+        var currentPoint = CGPoint.zero
+        var residual: CGFloat = 0  // distance left over from last segment
+
+        cgPath.applyWithBlock { elementPtr in
+            let el = elementPtr.pointee
+            switch el.type {
+            case .moveToPoint:
+                currentPoint = el.points[0]
+                residual = 0
+            case .addLineToPoint:
+                let end = el.points[0]
+                sampleLine(from: currentPoint, to: end, spacing: spacing,
+                           residual: &residual, into: &points)
+                currentPoint = end
+            case .addQuadCurveToPoint:
+                let cp = el.points[0], end = el.points[1]
+                sampleQuadCurve(from: currentPoint, cp: cp, to: end,
+                                spacing: spacing, residual: &residual, into: &points)
+                currentPoint = end
+            case .addCurveToPoint:
+                let cp1 = el.points[0], cp2 = el.points[1], end = el.points[2]
+                sampleCubicCurve(from: currentPoint, cp1: cp1, cp2: cp2, to: end,
+                                 spacing: spacing, residual: &residual, into: &points)
+                currentPoint = end
+            case .closeSubpath:
+                break
+            @unknown default:
+                break
+            }
+        }
+        return points
+    }
+
+    private static func sampleLine(from p0: CGPoint, to p1: CGPoint, spacing: CGFloat,
+                                    residual: inout CGFloat, into points: inout [CGPoint]) {
+        let dx = p1.x - p0.x, dy = p1.y - p0.y
+        let segLen = sqrt(dx * dx + dy * dy)
+        guard segLen > 0.001 else { return }
+        var traveled = residual > 0 ? spacing - residual : 0
+        while traveled <= segLen {
+            let t = traveled / segLen
+            points.append(CGPoint(x: p0.x + dx * t, y: p0.y + dy * t))
+            traveled += spacing
+        }
+        residual = segLen - (traveled - spacing)
+    }
+
+    private static func sampleQuadCurve(from p0: CGPoint, cp: CGPoint, to p2: CGPoint,
+                                         spacing: CGFloat, residual: inout CGFloat,
+                                         into points: inout [CGPoint]) {
+        // Flatten to small line segments then sample
+        let steps = max(8, Int(quadApproxLength(p0: p0, cp: cp, p2: p2) / 4))
+        var prev = p0
+        for i in 1...steps {
+            let t = CGFloat(i) / CGFloat(steps)
+            let mt = 1 - t
+            let x = mt * mt * p0.x + 2 * mt * t * cp.x + t * t * p2.x
+            let y = mt * mt * p0.y + 2 * mt * t * cp.y + t * t * p2.y
+            let next = CGPoint(x: x, y: y)
+            sampleLine(from: prev, to: next, spacing: spacing, residual: &residual, into: &points)
+            prev = next
+        }
+    }
+
+    private static func sampleCubicCurve(from p0: CGPoint, cp1: CGPoint, cp2: CGPoint,
+                                          to p3: CGPoint, spacing: CGFloat,
+                                          residual: inout CGFloat, into points: inout [CGPoint]) {
+        let steps = max(12, Int(cubicApproxLength(p0: p0, cp1: cp1, cp2: cp2, p3: p3) / 4))
+        var prev = p0
+        for i in 1...steps {
+            let t = CGFloat(i) / CGFloat(steps)
+            let mt = 1 - t
+            let x = mt*mt*mt*p0.x + 3*mt*mt*t*cp1.x + 3*mt*t*t*cp2.x + t*t*t*p3.x
+            let y = mt*mt*mt*p0.y + 3*mt*mt*t*cp1.y + 3*mt*t*t*cp2.y + t*t*t*p3.y
+            let next = CGPoint(x: x, y: y)
+            sampleLine(from: prev, to: next, spacing: spacing, residual: &residual, into: &points)
+            prev = next
+        }
+    }
+
+    private static func quadApproxLength(p0: CGPoint, cp: CGPoint, p2: CGPoint) -> CGFloat {
+        let d1 = hypot(cp.x - p0.x, cp.y - p0.y)
+        let d2 = hypot(p2.x - cp.x, p2.y - cp.y)
+        return d1 + d2
+    }
+
+    private static func cubicApproxLength(p0: CGPoint, cp1: CGPoint, cp2: CGPoint, p3: CGPoint) -> CGFloat {
+        let d1 = hypot(cp1.x - p0.x, cp1.y - p0.y)
+        let d2 = hypot(cp2.x - cp1.x, cp2.y - cp1.y)
+        let d3 = hypot(p3.x - cp2.x, p3.y - cp2.y)
+        return d1 + d2 + d3
     }
 
     /// Returns the outline stroked to `width` as a filled path — useful for hit-testing proximity.
@@ -66,11 +162,20 @@ enum TraceDifficulty: String, CaseIterable {
         }
     }
 
-    var completionDistance: CGFloat {
+    var requiredCoverage: CGFloat {
         switch self {
-        case .easy:   return 350
-        case .medium: return 300
-        case .tricky: return 250
+        case .easy:   return 0.50
+        case .medium: return 0.65
+        case .tricky: return 0.80
+        }
+    }
+
+    /// How close drag must be to "cover" a checkpoint, as fraction of fontSize.
+    var checkpointRadiusFraction: CGFloat {
+        switch self {
+        case .easy:   return 0.12
+        case .medium: return 0.08
+        case .tricky: return 0.05
         }
     }
 
@@ -177,6 +282,7 @@ final class LetterTraceViewModel: ObservableObject {
         var paintPoints: [CGPoint] = []
         var totalDragDistance: CGFloat = 0
         var effectiveDragDistance: CGFloat = 0
+        var coveredCheckpoints: Set<Int> = []
     }
 
     @Published var phase: Phase = .idle
@@ -228,7 +334,8 @@ final class LetterTraceViewModel: ObservableObject {
     }
 
     func addPaintPoint(_ pt: CGPoint, tileIndex: Int, prevPt: CGPoint?,
-                        glyphPath: LetterGlyphPath?, letterOrigin: CGPoint) {
+                        glyphPath: LetterGlyphPath?, letterOrigin: CGPoint,
+                        fontSize: CGFloat) {
         guard tileIndex < tiles.count else { return }
         tiles[tileIndex].paintPoints.append(pt)
         if let prev = prevPt {
@@ -260,11 +367,29 @@ final class LetterTraceViewModel: ObservableObject {
                 }
             }
         }
+
+        // Coverage-based checkpoint tracking
+        if let gp = glyphPath {
+            let checkRadius = fontSize * difficulty.checkpointRadiusFraction
+            let checkRadiusSq = checkRadius * checkRadius
+            // Convert drag point to glyph-local coordinates
+            let localPt = CGPoint(x: pt.x - letterOrigin.x, y: pt.y - letterOrigin.y)
+            for (idx, outlinePt) in gp.outlinePoints.enumerated() {
+                if tiles[tileIndex].coveredCheckpoints.contains(idx) { continue }
+                let dx = localPt.x - outlinePt.x
+                let dy = localPt.y - outlinePt.y
+                if dx * dx + dy * dy <= checkRadiusSq {
+                    tiles[tileIndex].coveredCheckpoints.insert(idx)
+                }
+            }
+        }
     }
 
-    func checkCompletion(tileIndex: Int) {
+    func checkCompletion(tileIndex: Int, outlinePointCount: Int) {
         guard tileIndex < tiles.count, !tiles[tileIndex].isComplete else { return }
-        guard tiles[tileIndex].effectiveDragDistance >= difficulty.completionDistance else { return }
+        guard outlinePointCount > 0 else { return }
+        let coverage = CGFloat(tiles[tileIndex].coveredCheckpoints.count) / CGFloat(outlinePointCount)
+        guard coverage >= difficulty.requiredCoverage else { return }
         tiles[tileIndex].isComplete = true
         let letter = tiles[tileIndex].letter
         synthesizer.stopSpeaking(at: .immediate)
@@ -660,7 +785,7 @@ struct TraceStageView: View {
     let containerSize: CGSize
     let currentIndex: Int
 
-    private var keyboardHeight: CGFloat { containerSize.height * 0.25 }
+    private var keyboardHeight: CGFloat { containerSize.height * 0.18 }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -769,8 +894,10 @@ struct TracingLetterView: View {
         GeometryReader { geo in
             let letter = tile?.letter ?? ""
             let paintPoints = tile?.paintPoints ?? []
-            let progress = min(1.0, (tile?.effectiveDragDistance ?? 0) / vm.difficulty.completionDistance)
-            let fontSize = min(geo.size.width, geo.size.height) * 0.85
+            let outlineCount = glyphData?.outlinePoints.count ?? 1
+            let coveredCount = tile?.coveredCheckpoints.count ?? 0
+            let progress = outlineCount > 0 ? min(1.0, CGFloat(coveredCount) / CGFloat(outlineCount)) : 0
+            let fontSize = min(geo.size.width, geo.size.height) * 0.95
             let paintRadius = max(20, fontSize * 0.06)
 
             ZStack {
@@ -833,9 +960,11 @@ struct TracingLetterView: View {
                     .onChanged { value in
                         let pt = value.location
                         vm.addPaintPoint(pt, tileIndex: tileIndex, prevPt: lastPoint,
-                                        glyphPath: glyphData, letterOrigin: letterOrigin)
+                                        glyphPath: glyphData, letterOrigin: letterOrigin,
+                                        fontSize: fontSize)
                         lastPoint = pt
-                        vm.checkCompletion(tileIndex: tileIndex)
+                        vm.checkCompletion(tileIndex: tileIndex,
+                                          outlinePointCount: glyphData?.outlinePoints.count ?? 0)
                     }
                     .onEnded { _ in lastPoint = nil }
             )
