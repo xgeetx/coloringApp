@@ -61,6 +61,15 @@ final class SpellingViewModel: ObservableObject {
         var appeared: Bool
     }
 
+    struct SlotState: Identifiable {
+        let id = UUID()
+        let expectedLetter: String
+        let index: Int
+        var filled: Bool = false
+        var filledTileID: UUID? = nil
+        var shaking: Bool = false
+    }
+
     @Published var phase: Phase = .idle
     @Published var transcript: String = ""
     @Published var permissionDenied = false
@@ -68,6 +77,9 @@ final class SpellingViewModel: ObservableObject {
     @Published var manualWordInput: String = ""
     @Published var validationError: String?
     @Published var shuffleRequestToken = 0
+    @Published var slotStates: [SlotState] = []
+    @Published var nextSlotIndex: Int = 0
+    @Published var celebrating: Bool = false
 
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var audioEngine: AVAudioEngine?
@@ -99,6 +111,11 @@ final class SpellingViewModel: ObservableObject {
     func animateLettersIn(word: String, stageSize: CGSize) {
         stagedTiles = []
         let letters = word.map { String($0) }
+        slotStates = letters.enumerated().map { index, letter in
+            SlotState(expectedLetter: letter, index: index)
+        }
+        nextSlotIndex = 0
+        celebrating = false
         let targetOffsets = randomOffsets(count: letters.count, stageSize: stageSize)
 
         for (index, letter) in letters.enumerated() {
@@ -128,11 +145,13 @@ final class SpellingViewModel: ObservableObject {
     }
 
     func shuffleTiles(stageSize: CGSize) {
-        guard !stagedTiles.isEmpty else { return }
-        let shuffledOffsets = randomOffsets(count: stagedTiles.count, stageSize: stageSize)
-        for idx in stagedTiles.indices {
+        let filledTileIDs = Set(slotStates.compactMap { $0.filledTileID })
+        let unfilledIndices = stagedTiles.indices.filter { !filledTileIDs.contains(stagedTiles[$0].id) }
+        guard !unfilledIndices.isEmpty else { return }
+        let shuffledOffsets = (0..<unfilledIndices.count).map { _ in bounceBackOffset(stageSize: stageSize) }
+        for (i, tileIdx) in unfilledIndices.enumerated() {
             withAnimation(.spring(response: 0.75, dampingFraction: 0.80)) {
-                stagedTiles[idx].offset = shuffledOffsets[idx]
+                stagedTiles[tileIdx].offset = shuffledOffsets[i]
             }
         }
     }
@@ -144,12 +163,28 @@ final class SpellingViewModel: ObservableObject {
     private func randomOffsets(count: Int, stageSize: CGSize) -> [CGSize] {
         let tileRadius: CGFloat = 52
         let xRange = max(10, stageSize.width / 2 - tileRadius)
-        let yRange = max(10, stageSize.height / 2 - tileRadius)
+        let exclusionBand: CGFloat = 80
 
         return (0..<count).map { _ in
-            CGSize(
+            let goUp = Bool.random()
+            let yMin: CGFloat
+            let yMax: CGFloat
+            if goUp {
+                yMin = -(stageSize.height / 2 - tileRadius)
+                yMax = -exclusionBand
+            } else {
+                yMin = exclusionBand
+                yMax = stageSize.height / 2 - tileRadius
+            }
+            let y: CGFloat
+            if yMin < yMax {
+                y = CGFloat.random(in: yMin...yMax)
+            } else {
+                y = goUp ? -exclusionBand : exclusionBand
+            }
+            return CGSize(
                 width: CGFloat.random(in: -xRange...xRange),
-                height: CGFloat.random(in: -yRange...yRange)
+                height: y
             )
         }
     }
@@ -184,6 +219,92 @@ final class SpellingViewModel: ObservableObject {
     func updateTileRotation(id: UUID, newRotation: Angle) {
         guard let idx = stagedTiles.firstIndex(where: { $0.id == id }) else { return }
         stagedTiles[idx].rotation = newRotation
+    }
+
+    func slotCenter(index: Int, slotCount: Int, stageSize: CGSize) -> CGPoint {
+        let slotSize: CGFloat = 96
+        let spacing: CGFloat = 8
+        let totalWidth = CGFloat(slotCount) * slotSize + CGFloat(slotCount - 1) * spacing
+        let startX = (stageSize.width - totalWidth) / 2 + slotSize / 2
+        let x = startX + CGFloat(index) * (slotSize + spacing)
+        let y = stageSize.height / 2
+        return CGPoint(x: x, y: y)
+    }
+
+    func attemptSnap(tileID: UUID, dropPosition: CGPoint, stageSize: CGSize) -> Bool {
+        guard nextSlotIndex < slotStates.count else { return false }
+        guard let tileIdx = stagedTiles.firstIndex(where: { $0.id == tileID }) else { return false }
+
+        let tile = stagedTiles[tileIdx]
+        let targetCenter = slotCenter(index: nextSlotIndex, slotCount: slotStates.count, stageSize: stageSize)
+        let dx = dropPosition.x - targetCenter.x
+        let dy = dropPosition.y - targetCenter.y
+        let distance = sqrt(dx * dx + dy * dy)
+
+        guard distance < 70 else { return false }
+
+        if tile.letter == slotStates[nextSlotIndex].expectedLetter {
+            slotStates[nextSlotIndex].filled = true
+            slotStates[nextSlotIndex].filledTileID = tileID
+
+            let slotOffset = CGSize(
+                width: targetCenter.x - stageSize.width / 2,
+                height: targetCenter.y - stageSize.height / 2
+            )
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                stagedTiles[tileIdx].offset = slotOffset
+                stagedTiles[tileIdx].rotation = .degrees(0)
+            }
+
+            nextSlotIndex += 1
+
+            if nextSlotIndex == slotStates.count {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                        self.celebrating = true
+                    }
+                }
+            }
+            return true
+        } else {
+            rejectSlot(index: nextSlotIndex)
+            return false
+        }
+    }
+
+    func rejectSlot(index: Int) {
+        guard index < slotStates.count else { return }
+        withAnimation(.default) {
+            slotStates[index].shaking = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.slotStates[index].shaking = false
+        }
+    }
+
+    func bounceBackOffset(stageSize: CGSize) -> CGSize {
+        let tileRadius: CGFloat = 52
+        let exclusionBand: CGFloat = 80
+        let xRange = max(10, stageSize.width / 2 - tileRadius)
+
+        let goUp = Bool.random()
+        let yMin: CGFloat
+        let yMax: CGFloat
+        if goUp {
+            yMin = -(stageSize.height / 2 - tileRadius)
+            yMax = -exclusionBand
+        } else {
+            yMin = exclusionBand
+            yMax = stageSize.height / 2 - tileRadius
+        }
+        guard yMin < yMax else {
+            return CGSize(width: CGFloat.random(in: -xRange...xRange), height: goUp ? -exclusionBand : exclusionBand)
+        }
+
+        return CGSize(
+            width: CGFloat.random(in: -xRange...xRange),
+            height: CGFloat.random(in: yMin...yMax)
+        )
     }
 
     private func clampOffset(_ offset: CGSize, stageSize: CGSize) -> CGSize {
@@ -353,6 +474,9 @@ final class SpellingViewModel: ObservableObject {
         manualWordInput = ""
         validationError = nil
         stagedTiles = []
+        slotStates = []
+        nextSlotIndex = 0
+        celebrating = false
         phase = .idle
     }
 }
@@ -527,12 +651,18 @@ struct SpellingStageLayout: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            LetterStageView(vm: vm, stageSize: stageSize)
-                .frame(width: stageSize.width, height: stageSize.height)
+        ZStack {
+            VStack(spacing: 0) {
+                LetterStageView(vm: vm, stageSize: stageSize)
+                    .frame(width: stageSize.width, height: stageSize.height)
 
-            KeyboardDisplayPanel(word: word)
-                .frame(width: containerSize.width, height: containerSize.height * 0.45)
+                KeyboardDisplayPanel(word: word)
+                    .frame(width: containerSize.width, height: containerSize.height * 0.45)
+            }
+
+            if vm.celebrating {
+                ConfettiView()
+            }
         }
         .onAppear { vm.animateLettersIn(word: word, stageSize: stageSize) }
         .onChange(of: word) { newWord in
@@ -554,11 +684,106 @@ struct LetterStageView: View {
                 .fill(Color.white.opacity(0.22))
                 .padding(8)
 
+            if !vm.slotStates.isEmpty {
+                SlotRowView(vm: vm, stageSize: stageSize)
+            }
+
+            // Draggable tiles (unfilled only)
             ForEach(vm.stagedTiles) { tile in
-                DraggableTileView(vm: vm, tile: tile, stageSize: stageSize)
+                if !vm.slotStates.contains(where: { $0.filledTileID == tile.id }) {
+                    DraggableTileView(vm: vm, tile: tile, stageSize: stageSize)
+                }
+            }
+
+            // Filled tiles rendered on top of slots (non-draggable)
+            ForEach(vm.stagedTiles) { tile in
+                if vm.slotStates.contains(where: { $0.filledTileID == tile.id }) {
+                    Text(tile.letter)
+                        .font(.system(size: 68, weight: .black, design: .rounded))
+                        .foregroundColor(.white)
+                        .frame(width: 96, height: 96)
+                        .background(
+                            RoundedRectangle(cornerRadius: 22)
+                                .fill(vm.tileColor(at: tile.colorIndex))
+                                .shadow(color: vm.tileColor(at: tile.colorIndex).opacity(0.32), radius: 4, x: 0, y: 2)
+                        )
+                        .offset(x: tile.offset.width, y: tile.offset.height)
+                        .scaleEffect(vm.celebrating ? 1.15 : 1.0)
+                        .animation(
+                            vm.celebrating
+                                ? Animation.spring(response: 0.3, dampingFraction: 0.5)
+                                    .delay(Double(tile.colorIndex) * 0.1)
+                                : .default,
+                            value: vm.celebrating
+                        )
+                }
             }
         }
         .clipped()
+    }
+}
+
+struct SlotRowView: View {
+    @ObservedObject var vm: SpellingViewModel
+    let stageSize: CGSize
+
+    private let slotSize: CGFloat = 96
+    private let slotSpacing: CGFloat = 8
+
+    var body: some View {
+        HStack(spacing: slotSpacing) {
+            ForEach(vm.slotStates) { slot in
+                SlotCell(
+                    slot: slot,
+                    isNext: slot.index == vm.nextSlotIndex && !vm.celebrating,
+                    slotSize: slotSize
+                )
+            }
+        }
+        .position(x: stageSize.width / 2, y: stageSize.height / 2)
+    }
+}
+
+struct SlotCell: View {
+    let slot: SpellingViewModel.SlotState
+    let isNext: Bool
+    let slotSize: CGFloat
+
+    @State private var pulseScale: CGFloat = 1.0
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 22)
+            .strokeBorder(
+                slot.filled ? Color.green : (isNext ? Color.purple : Color.gray.opacity(0.5)),
+                style: slot.filled ? StrokeStyle(lineWidth: 3) : StrokeStyle(lineWidth: 3, dash: [8, 6])
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 22)
+                    .fill(slot.filled ? Color.green.opacity(0.15) : Color.white.opacity(0.4))
+            )
+            .frame(width: slotSize, height: slotSize)
+            .scaleEffect(pulseScale)
+            .offset(x: slot.shaking ? -6 : 0)
+            .animation(
+                slot.shaking
+                    ? Animation.linear(duration: 0.08).repeatCount(5, autoreverses: true)
+                    : .default,
+                value: slot.shaking
+            )
+            .onAppear { updatePulse() }
+            .onChange(of: isNext) { _ in updatePulse() }
+    }
+
+    private func updatePulse() {
+        if isNext {
+            withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                pulseScale = 1.06
+            }
+        } else {
+            withAnimation(.default) {
+                pulseScale = 1.0
+            }
+        }
     }
 }
 
@@ -621,14 +846,29 @@ struct DraggableTileView: View {
                 hasSpokeThisDrag = false
                 isDragging = false
                 vm.emitDragEndHaptic()
-                vm.updateTileOffset(
-                    id: tile.id,
-                    newOffset: CGSize(
-                        width: tile.offset.width + value.translation.width,
-                        height: tile.offset.height + value.translation.height
-                    ),
-                    stageSize: stageSize
+
+                let finalOffset = CGSize(
+                    width: tile.offset.width + value.translation.width,
+                    height: tile.offset.height + value.translation.height
                 )
+                let dropPosition = CGPoint(
+                    x: stageSize.width / 2 + finalOffset.width,
+                    y: stageSize.height / 2 + finalOffset.height
+                )
+
+                let snapped = vm.attemptSnap(tileID: tile.id, dropPosition: dropPosition, stageSize: stageSize)
+                if !snapped {
+                    let slotRowY = stageSize.height / 2
+                    let nearSlotRow = abs(dropPosition.y - slotRowY) < 80
+                    if nearSlotRow && !vm.slotStates.isEmpty {
+                        let bounced = vm.bounceBackOffset(stageSize: stageSize)
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
+                            vm.updateTileOffset(id: tile.id, newOffset: bounced, stageSize: stageSize)
+                        }
+                    } else {
+                        vm.updateTileOffset(id: tile.id, newOffset: finalOffset, stageSize: stageSize)
+                    }
+                }
             }
     }
 
@@ -688,6 +928,68 @@ struct KeyboardDisplayPanel: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Keyboard preview")
         .accessibilityHint("Letters in the current word are highlighted")
+    }
+}
+
+struct ConfettiView: View {
+    @State private var particles: [ConfettiParticle] = []
+
+    struct ConfettiParticle: Identifiable {
+        let id = UUID()
+        let color: Color
+        let x: CGFloat
+        var y: CGFloat
+        let size: CGFloat
+        let rotation: Double
+    }
+
+    private let colors: [Color] = [
+        Color(r: 255, g: 100, b: 120),
+        Color(r: 255, g: 200, b: 60),
+        Color(r: 80, g: 200, b: 120),
+        Color(r: 60, g: 160, b: 255),
+        Color(r: 200, g: 80, b: 240),
+        Color(r: 255, g: 140, b: 60)
+    ]
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(particles) { p in
+                    RoundedRectangle(cornerRadius: p.size * 0.25)
+                        .fill(p.color)
+                        .frame(width: p.size, height: p.size * 0.6)
+                        .rotationEffect(.degrees(p.rotation))
+                        .position(x: p.x, y: p.y)
+                }
+            }
+            .onAppear {
+                spawnParticles(in: geo.size)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func spawnParticles(in size: CGSize) {
+        particles = (0..<45).map { _ in
+            ConfettiParticle(
+                color: colors.randomElement()!,
+                x: CGFloat.random(in: 0...size.width),
+                y: CGFloat.random(in: -size.height * 0.3 ... -20),
+                size: CGFloat.random(in: 8...16),
+                rotation: Double.random(in: 0...360)
+            )
+        }
+
+        withAnimation(.easeIn(duration: 2.5)) {
+            for idx in particles.indices {
+                particles[idx].y += CGFloat.random(in: 600...900)
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            particles = []
+        }
     }
 }
 
