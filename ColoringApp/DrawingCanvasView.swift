@@ -287,7 +287,7 @@ struct DrawingCanvasView: View {
         let opacityScale = stroke.brush.isSystem
             ? 1.0
             : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
-        let spread = stroke.brushSize * 0.6
+        let spread = stroke.brushSize * (stroke.brush.isSystem ? 0.6 : 0.6 * stroke.brush.stampSpacing)
         let hash   = stroke.id.hashValue
         for (i, pt) in stroke.points.enumerated() {
             for j in 0..<5 {
