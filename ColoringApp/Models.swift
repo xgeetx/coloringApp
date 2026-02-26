@@ -14,19 +14,25 @@ struct CrayolaColor: Identifiable, Hashable {
     let color: Color
 
     static let palette: [CrayolaColor] = [
+        // Row 1 (warm → cool): Red through Blue
         CrayolaColor(name: "Red",          color: Color(r: 238, g: 32,  b: 77)),
         CrayolaColor(name: "Red-Orange",   color: Color(r: 255, g: 83,  b: 73)),
         CrayolaColor(name: "Orange",       color: Color(r: 255, g: 117, b: 56)),
         CrayolaColor(name: "Yellow-Orange",color: Color(r: 255, g: 174, b: 66)),
+        CrayolaColor(name: "Gold",         color: Color(r: 231, g: 198, b: 73)),
         CrayolaColor(name: "Yellow",       color: Color(r: 252, g: 232, b: 131)),
         CrayolaColor(name: "Yellow-Green", color: Color(r: 197, g: 227, b: 132)),
         CrayolaColor(name: "Green",        color: Color(r: 28,  g: 172, b: 120)),
         CrayolaColor(name: "Blue-Green",   color: Color(r: 25,  g: 158, b: 189)),
+        CrayolaColor(name: "Sky Blue",     color: Color(r: 128, g: 218, b: 235)),
+        // Row 2 (cool → neutrals): Blue through White
         CrayolaColor(name: "Blue",         color: Color(r: 31,  g: 117, b: 254)),
         CrayolaColor(name: "Blue-Violet",  color: Color(r: 115, g: 102, b: 189)),
         CrayolaColor(name: "Violet",       color: Color(r: 146, g: 110, b: 174)),
         CrayolaColor(name: "Red-Violet",   color: Color(r: 192, g: 68,  b: 143)),
+        CrayolaColor(name: "Magenta",      color: Color(r: 246, g: 100, b: 175)),
         CrayolaColor(name: "Pink",         color: Color(r: 255, g: 170, b: 204)),
+        CrayolaColor(name: "Peach",        color: Color(r: 255, g: 207, b: 171)),
         CrayolaColor(name: "Brown",        color: Color(r: 180, g: 103, b: 77)),
         CrayolaColor(name: "Black",        color: Color(r: 35,  g: 35,  b: 35)),
         CrayolaColor(name: "White",        color: Color(r: 255, g: 254, b: 245)),

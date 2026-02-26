@@ -7,9 +7,10 @@ struct KidBrushBuilderView: View {
     @Environment(\.dismiss) var dismiss
 
     @State private var selectedTexture: BrushBaseStyle = .crayon
-    @State private var intensity: CGFloat = 0.5      // 0.0=soft, 1.0=bold (crayon/marker/chalk)
-    @State private var grainSpread: CGFloat = 1.0    // 0.5=tight, 3.0=spread (crayon only → stampSpacing)
-    @State private var stampSpacing: CGFloat = 1.2   // dense←→spread (glitter)
+    @State private var intensity: CGFloat = 0.5      // chalk: soft/bold; marker: sheer/opaque
+    @State private var grainSpread: CGFloat = 1.0    // chalk: tight/spread grain; crayon: smooth/grainy
+    @State private var stampSpacing: CGFloat = 1.2   // glitter: dense/spread
+    @State private var inkBleed: CGFloat = 1.0       // marker: crisp/juicy (0.0=crisp, 2.0=juicy)
     @State private var previewPoints: [CGPoint] = []
 
     private let textures: [BrushBaseStyle] = [.crayon, .marker, .chalk, .patternStamp]
@@ -107,6 +108,7 @@ struct KidBrushBuilderView: View {
             .onChange(of: intensity)       { _ in previewPoints = [] }
             .onChange(of: grainSpread)     { _ in previewPoints = [] }
             .onChange(of: stampSpacing)    { _ in previewPoints = [] }
+            .onChange(of: inkBleed)        { _ in previewPoints = [] }
 
             // ── Texture Picker ──
             VStack(spacing: 10) {
@@ -162,14 +164,36 @@ struct KidBrushBuilderView: View {
                         Text("spread grain").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 28)
-                } else {
+                } else if selectedTexture == .crayon {
+                    // Crayon: grain texture slider
+                    Slider(value: $grainSpread, in: 0.0...2.0)
+                        .tint(.orange)
+                        .padding(.horizontal, 24)
+                    HStack {
+                        Text("smooth").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("grainy").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 28)
+                } else if selectedTexture == .marker {
+                    // Marker: ink bleed slider
+                    Slider(value: $inkBleed, in: 0.0...2.0)
+                        .tint(.cyan)
+                        .padding(.horizontal, 24)
+                    HStack {
+                        Text("crisp").font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        Text("juicy").font(.caption).foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 28)
+                    // Marker: transparency slider
                     Slider(value: $intensity, in: 0.0...1.0)
                         .tint(.purple)
                         .padding(.horizontal, 24)
                     HStack {
-                        Text("soft").font(.caption).foregroundStyle(.secondary)
+                        Text("sheer").font(.caption).foregroundStyle(.secondary)
                         Spacer()
-                        Text("bold").font(.caption).foregroundStyle(.secondary)
+                        Text("opaque").font(.caption).foregroundStyle(.secondary)
                     }
                     .padding(.horizontal, 28)
                 }
@@ -212,7 +236,6 @@ struct KidBrushBuilderView: View {
 
         switch selectedTexture {
         case .crayon:
-            let scale = Double((0.4 + intensity * 1.2).clamped(to: 0.1...1.6))
             let offsets: [(CGFloat, CGFloat, Double)] = [
                 (-2.5,-1.5,0.50),(-1.0,-0.5,0.65),(0,0,0.72),(1.0,0.8,0.60),(2.2,1.5,0.45)
             ]
@@ -221,27 +244,37 @@ struct KidBrushBuilderView: View {
                 let pts = previewPoints.map { CGPoint(x: $0.x+dx, y: $0.y+dy) }
                 guard let f = pts.first else { continue }
                 path.move(to: f); pts.dropFirst().forEach { path.addLine(to: $0) }
-                ctx.stroke(path, with: .color(color.opacity(min(op*scale,1.0))),
+                ctx.stroke(path, with: .color(color.opacity(op)),
                            style: StrokeStyle(lineWidth: brushSize*0.85, lineCap:.round, lineJoin:.round))
             }
-            // Grain stipple scaled by grainSpread
-            let spread = brushSize * 0.45 * grainSpread
-            for (i, pt) in previewPoints.enumerated() where i % 2 == 0 {
-                let si = i / 2
+            // Grain stipple — grainSpread controls density + visibility (0=smooth, 2=heavy grain)
+            let grainScale = grainSpread / 2.0   // normalize to 0–1
+            let spread = brushSize * 0.45 * max(grainSpread, 0.3)
+            let step = grainSpread < 0.3 ? 6 : (grainSpread < 1.0 ? 3 : 1) // fewer dots when smooth
+            for (i, pt) in previewPoints.enumerated() where i % step == 0 {
+                let si = i / step
                 let ox = (rng(seed, 500 + si*4)     * 2 - 1) * spread
                 let oy = (rng(seed, 500 + si*4 + 1) * 2 - 1) * spread
-                let r  =  0.5 + rng(seed, 500 + si*4 + 2) * 2.0
-                let op =  0.04 + rng(seed, 500 + si*4 + 3) * 0.18
+                let r  =  0.5 + rng(seed, 500 + si*4 + 2) * (1.0 + grainScale * 2.5)
+                let op =  (0.02 + grainScale * 0.08) + rng(seed, 500 + si*4 + 3) * (0.05 + grainScale * 0.25)
                 ctx.fill(Ellipse().path(in: CGRect(x: pt.x+ox-r, y: pt.y+oy-r, width: r*2, height: r*2)),
                          with: .color(color.opacity(op)))
             }
 
         case .marker:
-            let scale = Double((0.4 + intensity * 1.2).clamped(to: 0.1...1.6))
-            var path = Path()
             guard let f = previewPoints.first else { return }
+            // Ink bleed halo — inkBleed controls width and opacity
+            let haloWidth = brushSize * (1.6 + inkBleed * 0.8)  // 1.6x to 3.2x
+            let haloOp = 0.04 + inkBleed * 0.06                 // 0.04 to 0.16
+            var haloPath = Path()
+            haloPath.move(to: f); previewPoints.dropFirst().forEach { haloPath.addLine(to: $0) }
+            ctx.stroke(haloPath, with: .color(color.opacity(haloOp)),
+                       style: StrokeStyle(lineWidth: haloWidth, lineCap:.round, lineJoin:.round))
+            // Solid pass — intensity controls transparency (0=sheer 30%, 1=opaque 90%)
+            let solidOp = 0.30 + intensity * 0.60
+            var path = Path()
             path.move(to: f); previewPoints.dropFirst().forEach { path.addLine(to: $0) }
-            ctx.stroke(path, with: .color(color.opacity(min(0.72*scale,1.0))),
+            ctx.stroke(path, with: .color(color.opacity(solidOp)),
                        style: StrokeStyle(lineWidth: brushSize*1.6, lineCap:.round, lineJoin:.round))
 
         case .chalk:
@@ -288,16 +321,33 @@ struct KidBrushBuilderView: View {
         case .chalk:        textureName = "Chalk"
         case .patternStamp: textureName = "Glitter"
         }
+        // Map slider values to descriptor fields:
+        // - stampSpacing: glitter=spacing, chalk=grainSpread, crayon=grainSpread (grain texture), marker=inkBleed
+        // - sizeVariation: chalk=intensity (bold), marker=intensity (transparency), crayon/glitter=0.0
+        let finalSpacing: CGFloat
+        let finalVariation: CGFloat
+        switch selectedTexture {
+        case .patternStamp:
+            finalSpacing = stampSpacing
+            finalVariation = 0.0
+        case .chalk:
+            finalSpacing = grainSpread
+            finalVariation = intensity
+        case .crayon:
+            finalSpacing = grainSpread      // grain texture amount
+            finalVariation = 0.0
+        case .marker:
+            finalSpacing = inkBleed         // ink bleed amount
+            finalVariation = intensity      // transparency
+        }
         let descriptor = BrushDescriptor(
             id: UUID(),
             name: "My \(textureName)",
             icon: selectedTexture.icon,
             baseStyle: selectedTexture,
             patternShape: selectedTexture == .patternStamp ? .star : nil,
-            stampSpacing: selectedTexture == .patternStamp ? stampSpacing
-                        : selectedTexture == .chalk        ? grainSpread
-                        : 1.0,
-            sizeVariation: selectedTexture != .patternStamp ? intensity : 0.0,
+            stampSpacing: finalSpacing,
+            sizeVariation: finalVariation,
             isSystem: false
         )
         // Cap at 2: remove oldest user brush first if already at limit

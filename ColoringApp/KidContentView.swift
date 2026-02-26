@@ -6,6 +6,11 @@ import AVFoundation
 final class StampSynth {
     static let shared = StampSynth()
     private let synth = AVSpeechSynthesizer()
+    private init() {
+        // Required for AVSpeechSynthesizer to produce audio on device
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
+    }
     func speak(_ text: String) {
         synth.stopSpeaking(at: .immediate)
         let u = AVSpeechUtterance(string: text)
@@ -131,15 +136,13 @@ struct KidContentView: View {
 
                     // Right: quick stamp grid
                     KidStampGridView(state: state, onMoreTapped: { showMoreStamps = true })
-                        .frame(width: 100)
+                        .frame(width: 120)
                 }
                 .padding(.horizontal, 12)
                 .frame(maxHeight: .infinity)
 
-                // ── Bottom: colour palette ──
-                ColorPaletteView(state: state)
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 10)
+                // ── Bottom: crayon box colour palette ──
+                KidCrayonBoxView(state: state)
             }
         }
         .sheet(isPresented: $showKidBuilder) {
@@ -182,7 +185,7 @@ struct KidTopToolbarView: View {
                 state.stampsAlwaysOnTop.toggle()
             }
 
-            if !state.isStampMode && !state.isEraserMode {
+            if !state.isEraserMode {
                 HStack(spacing: 20) {
                     KidSlider(label: "Size",
                               value: $state.brushSize,
@@ -412,10 +415,10 @@ struct KidStampGridView: View {
                         Spacer()
                     }
                     LazyVGrid(
-                        columns: [GridItem(.flexible(), spacing: 4), GridItem(.flexible(), spacing: 4)],
-                        spacing: 4
+                        columns: [GridItem(.flexible(), spacing: 6), GridItem(.flexible(), spacing: 6)],
+                        spacing: 6
                     ) {
-                        ForEach(cat.stamps.prefix(4), id: \.self) { emoji in
+                        ForEach(cat.stamps.prefix(2), id: \.self) { emoji in
                             KidStampTile(emoji: emoji, state: state)
                         }
                     }
@@ -461,7 +464,7 @@ struct KidStampTile: View {
             StampSynth.shared.speak(stampSoundMap[emoji] ?? emoji)
         } label: {
             Text(emoji)
-                .font(.system(size: 26))
+                .font(.system(size: 44))
                 .frame(maxWidth: .infinity)
                 .aspectRatio(1, contentMode: .fit)
                 .background(

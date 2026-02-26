@@ -165,9 +165,6 @@ struct DrawingCanvasView: View {
     }
 
     private func renderCrayon(_ stroke: Stroke, in ctx: GraphicsContext) {
-        let opacityScale = stroke.brush.isSystem
-            ? 1.0
-            : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
         let offsets: [(CGFloat, CGFloat, Double)] = [
             (-2.5, -1.5, 0.50),
             (-1.0, -0.5, 0.65),
@@ -187,7 +184,7 @@ struct DrawingCanvasView: View {
             for pt in pts.dropFirst() { path.addLine(to: pt) }
             ctx.stroke(
                 path,
-                with: .color(stroke.color.opacity(min(opacity * opacityScale, 1.0))),
+                with: .color(stroke.color.opacity(opacity)),
                 style: StrokeStyle(
                     lineWidth: stroke.brushSize * 0.85,
                     lineCap: .round,
@@ -196,16 +193,18 @@ struct DrawingCanvasView: View {
             )
         }
         // Paper grain stipple — dots scattered within stroke width
-        // Uses index range 500+ to avoid collision with pass jitter indices (0–4, 100–104)
-        // For user brushes, stampSpacing controls grain spread (0.5=tight, 1.0=default, 3.0=chunky)
-        let spread = stroke.brushSize * (stroke.brush.isSystem ? 0.45 : 0.45 * stroke.brush.stampSpacing)
+        // For user brushes, stampSpacing controls grain texture (0=smooth, 2=heavy grain)
+        let grainAmount = stroke.brush.isSystem ? 1.0 : Double(stroke.brush.stampSpacing)
+        let grainScale = CGFloat(grainAmount / 2.0) // normalize to 0–1
+        let spread = stroke.brushSize * 0.45 * CGFloat(max(grainAmount, 0.3))
+        let step = grainAmount < 0.3 ? 6 : (grainAmount < 1.0 ? 3 : (stroke.brush.isSystem ? 2 : 1))
         let hash   = stroke.id.hashValue
-        for (i, pt) in stroke.points.enumerated() where i % 2 == 0 {
-            let si = i / 2
+        for (i, pt) in stroke.points.enumerated() where i % step == 0 {
+            let si = i / step
             let ox = (deterministicJitter(index: 500 + si * 4,     strokeHash: hash) * 2 - 1) * spread
             let oy = (deterministicJitter(index: 500 + si * 4 + 1, strokeHash: hash) * 2 - 1) * spread
-            let r  =  0.5 + deterministicJitter(index: 500 + si * 4 + 2, strokeHash: hash) * 2.0
-            let op =  0.04 + deterministicJitter(index: 500 + si * 4 + 3, strokeHash: hash) * 0.18
+            let r  =  0.5 + deterministicJitter(index: 500 + si * 4 + 2, strokeHash: hash) * (1.0 + grainScale * 2.5)
+            let op =  (0.02 + grainScale * 0.08) + deterministicJitter(index: 500 + si * 4 + 3, strokeHash: hash) * (0.05 + grainScale * 0.25)
             let x  = pt.location.x + ox
             let y  = pt.location.y + oy
             ctx.fill(
@@ -216,46 +215,54 @@ struct DrawingCanvasView: View {
     }
 
     private func renderMarker(_ stroke: Stroke, in ctx: GraphicsContext) {
-        let opacityScale = stroke.brush.isSystem
-            ? 1.0
-            : Double((0.4 + stroke.brush.sizeVariation * 1.2).clamped(to: 0.1...1.6))
+        // For user brushes: stampSpacing = ink bleed (0–2), sizeVariation = transparency (0–1)
+        let bleed = stroke.brush.isSystem ? 1.0 : Double(stroke.brush.stampSpacing)
+        let transparency = stroke.brush.isSystem ? 1.0 : Double(stroke.brush.sizeVariation)
+
+        // Halo width and opacity scale with bleed slider
+        let haloWidthMult = CGFloat(1.6 + bleed * 0.8)  // 1.6x to 3.2x
+        let haloOp = 0.04 + bleed * 0.06                 // 0.04 to 0.16
+        // Solid opacity scales with transparency slider (0=sheer 30%, 1=opaque 90%)
+        let solidOp = stroke.brush.isSystem ? 0.82 : (0.30 + transparency * 0.60)
+
         guard let first = stroke.points.first else { return }
 
         if stroke.points.count == 1 {
             // Dot: halo ring then solid fill
             let r = stroke.brushSize / 2
+            let haloR = r * haloWidthMult
             ctx.fill(
-                Ellipse().path(in: CGRect(x: first.location.x - r * 1.6,
-                                          y: first.location.y - r * 1.6,
-                                          width: stroke.brushSize * 1.6 * 2,
-                                          height: stroke.brushSize * 1.6 * 2)),
-                with: .color(stroke.color.opacity(0.08))
+                Ellipse().path(in: CGRect(x: first.location.x - haloR,
+                                          y: first.location.y - haloR,
+                                          width: haloR * 2,
+                                          height: haloR * 2)),
+                with: .color(stroke.color.opacity(haloOp))
             )
             ctx.fill(
                 Ellipse().path(in: CGRect(x: first.location.x - r,
                                           y: first.location.y - r,
                                           width: stroke.brushSize,
                                           height: stroke.brushSize)),
-                with: .color(stroke.color.opacity(min(0.82 * opacityScale, 1.0)))
+                with: .color(stroke.color.opacity(solidOp))
             )
             return
         }
 
-        // Halo pass — wide, very transparent (ink bleed)
+        // Halo pass — wide, transparent (ink bleed)
         var haloPath = Path()
         haloPath.move(to: first.location)
         for pt in stroke.points.dropFirst() { haloPath.addLine(to: pt.location) }
         ctx.stroke(haloPath,
-                   with: .color(stroke.color.opacity(0.08)),
-                   style: StrokeStyle(lineWidth: stroke.brushSize * 2.2,
+                   with: .color(stroke.color.opacity(haloOp)),
+                   style: StrokeStyle(lineWidth: stroke.brushSize * haloWidthMult,
                                       lineCap: .round, lineJoin: .round))
 
-        // Solid pass — clean, saturated, no texture
+        // Solid pass — clean, saturated
         var path = Path()
         path.move(to: first.location)
         for pt in stroke.points.dropFirst() { path.addLine(to: pt.location) }
         ctx.stroke(path,
-                   with: .color(stroke.color.opacity(min(0.82 * opacityScale, 1.0))),
+                   with: .color(stroke.color.opacity(solidOp)),
                    style: StrokeStyle(lineWidth: stroke.brushSize * 1.5,
                                       lineCap: .round, lineJoin: .round))
     }
