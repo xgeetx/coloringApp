@@ -176,12 +176,12 @@ enum TraceDifficulty: String, CaseIterable {
         }
     }
 
-    /// How close drag must be to "cover" a checkpoint, as fraction of fontSize.
-    var checkpointRadiusFraction: CGFloat {
+    /// Fixed pixel radius for checkpoint hit-testing.
+    var checkpointRadius: CGFloat {
         switch self {
-        case .easy:   return 0.12
-        case .medium: return 0.08
-        case .tricky: return 0.05
+        case .easy:   return 28
+        case .medium: return 20
+        case .tricky: return 14
         }
     }
 
@@ -287,7 +287,6 @@ final class LetterTraceViewModel: ObservableObject {
         var isComplete: Bool = false
         var paintPoints: [CGPoint] = []
         var totalDragDistance: CGFloat = 0
-        var effectiveDragDistance: CGFloat = 0
         var coveredCheckpoints: Set<Int> = []
     }
 
@@ -340,8 +339,7 @@ final class LetterTraceViewModel: ObservableObject {
     }
 
     func addPaintPoint(_ pt: CGPoint, tileIndex: Int, prevPt: CGPoint?,
-                        glyphPath: LetterGlyphPath?, letterOrigin: CGPoint,
-                        fontSize: CGFloat) {
+                        glyphPath: LetterGlyphPath?, letterOrigin: CGPoint) {
         guard tileIndex < tiles.count else { return }
         tiles[tileIndex].paintPoints.append(pt)
         if let prev = prevPt {
@@ -349,36 +347,12 @@ final class LetterTraceViewModel: ObservableObject {
             let dy = pt.y - prev.y
             let dist = sqrt(dx * dx + dy * dy)
             tiles[tileIndex].totalDragDistance += dist
-
-            // Compute effective distance based on difficulty
-            if difficulty == .easy {
-                // Easy: any drag inside the filled letter counts
-                if let gp = glyphPath {
-                    let localPt = CGPoint(x: pt.x - letterOrigin.x, y: pt.y - letterOrigin.y)
-                    if gp.eoContains(point: localPt) {
-                        tiles[tileIndex].effectiveDragDistance += dist
-                    }
-                } else {
-                    tiles[tileIndex].effectiveDragDistance += dist
-                }
-            } else {
-                // Medium/Tricky: must be near the outline
-                if let gp = glyphPath {
-                    let localPt = CGPoint(x: pt.x - letterOrigin.x, y: pt.y - letterOrigin.y)
-                    if gp.isNearOutline(point: localPt, bandWidth: difficulty.outlineBandWidth) {
-                        tiles[tileIndex].effectiveDragDistance += dist
-                    }
-                } else {
-                    tiles[tileIndex].effectiveDragDistance += dist
-                }
-            }
         }
 
-        // Coverage-based checkpoint tracking
+        // Coverage-based checkpoint tracking — fixed pixel radius
         if let gp = glyphPath {
-            let checkRadius = fontSize * difficulty.checkpointRadiusFraction
+            let checkRadius = difficulty.checkpointRadius
             let checkRadiusSq = checkRadius * checkRadius
-            // Convert drag point to glyph-local coordinates
             let localPt = CGPoint(x: pt.x - letterOrigin.x, y: pt.y - letterOrigin.y)
             for (idx, outlinePt) in gp.outlinePoints.enumerated() {
                 if tiles[tileIndex].coveredCheckpoints.contains(idx) { continue }
@@ -394,14 +368,8 @@ final class LetterTraceViewModel: ObservableObject {
     func checkCompletion(tileIndex: Int, outlinePointCount: Int) {
         guard tileIndex < tiles.count, !tiles[tileIndex].isComplete else { return }
         guard outlinePointCount > 0 else { return }
-        // Scale required coverage down for complex letters with long perimeters.
-        // Reference ~30 points (simple letter like C or L). Letters with more points
-        // get a reduced requirement via sqrt scaling so W/M aren't punishing.
-        let referenceCount: CGFloat = 30
-        let scale = min(1.0, sqrt(referenceCount / CGFloat(outlinePointCount)))
-        let adjustedCoverage = difficulty.requiredCoverage * scale
         let coverage = CGFloat(tiles[tileIndex].coveredCheckpoints.count) / CGFloat(outlinePointCount)
-        guard coverage >= adjustedCoverage else { return }
+        guard coverage >= difficulty.requiredCoverage else { return }
         tiles[tileIndex].isComplete = true
         let letter = tiles[tileIndex].letter
         synthesizer.stopSpeaking(at: .immediate)
@@ -797,8 +765,6 @@ struct TraceStageView: View {
     let containerSize: CGSize
     let currentIndex: Int
 
-    private var keyboardHeight: CGFloat { containerSize.height * 0.18 }
-
     var body: some View {
         VStack(spacing: 0) {
             // Progress dots
@@ -839,15 +805,16 @@ struct TraceStageView: View {
                        value: vm.tiles.filter { $0.hasPopped }.count)
             .padding(.vertical, 4)
 
-            // Big tracing letter in centre
+            // Big tracing letter in centre — .id forces fresh @State on letter change
             if currentIndex < vm.tiles.count {
                 TracingLetterView(vm: vm, tileIndex: currentIndex)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                    .id(currentIndex)
             }
 
-            // Keyboard panel at bottom — appears here; letters pop out via tile-row animation above
+            // Keyboard panel at bottom — intrinsic height, no fraction
             TraceKeyboardPanel(word: word)
-                .frame(height: keyboardHeight)
         }
         .onAppear {
             vm.popTiles()
@@ -906,7 +873,7 @@ struct TracingLetterView: View {
         GeometryReader { geo in
             let letter = tile?.letter ?? ""
             let paintPoints = tile?.paintPoints ?? []
-            let fontSize = min(geo.size.width, geo.size.height) * 0.95
+            let fontSize = min(geo.size.width, geo.size.height) * 0.75
             let paintRadius = max(20, fontSize * 0.06)
 
             ZStack {
@@ -977,19 +944,13 @@ struct TracingLetterView: View {
                     .onChanged { value in
                         let pt = value.location
                         vm.addPaintPoint(pt, tileIndex: tileIndex, prevPt: lastPoint,
-                                        glyphPath: glyphData, letterOrigin: letterOrigin,
-                                        fontSize: fontSize)
+                                        glyphPath: glyphData, letterOrigin: letterOrigin)
                         lastPoint = pt
                         vm.checkCompletion(tileIndex: tileIndex,
                                           outlinePointCount: glyphData?.outlinePoints.count ?? 0)
                     }
                     .onEnded { _ in lastPoint = nil }
             )
-            .onChange(of: tileIndex) { _ in
-                let newLetter = (tileIndex < vm.tiles.count) ? vm.tiles[tileIndex].letter : ""
-                extractGlyph(letter: newLetter, fontSize: fontSize, in: geo.size)
-                lastPoint = nil
-            }
         }
     }
 
@@ -1042,18 +1003,18 @@ struct TraceKeyboardPanel: View {
     private var wordLetters: Set<String> { Set(word.map { String($0) }) }
 
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 3) {
             ForEach(rows.indices, id: \.self) { rowIdx in
-                HStack(spacing: 4) {
+                HStack(spacing: 3) {
                     ForEach(rows[rowIdx], id: \.self) { letter in
                         let inWord = wordLetters.contains(letter)
                         Text(letter)
-                            .font(.system(size: 20, weight: inWord ? .black : .regular, design: .rounded))
+                            .font(.system(size: 16, weight: inWord ? .black : .regular, design: .rounded))
                             .foregroundStyle(inWord ? Color.white : Color.secondary.opacity(0.7))
                             .frame(maxWidth: .infinity)
-                            .frame(height: 42)
+                            .frame(height: 32)
                             .background(
-                                RoundedRectangle(cornerRadius: 8)
+                                RoundedRectangle(cornerRadius: 6)
                                     .fill(inWord
                                           ? Color(r: 120, g: 60, b: 220)
                                           : Color.white.opacity(0.55))
@@ -1062,15 +1023,15 @@ struct TraceKeyboardPanel: View {
                 }
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(
-            RoundedRectangle(cornerRadius: 22)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.10), radius: 8, x: 0, y: -2)
+                .shadow(color: .black.opacity(0.10), radius: 6, x: 0, y: -2)
         )
         .padding(.horizontal, 8)
-        .padding(.bottom, 8)
+        .padding(.bottom, 4)
     }
 }
 
