@@ -122,6 +122,7 @@
 			packageProductDependencies = (
 				C1C2C3C4C5C6C7C8C9D0D1D2 /* SpellingFun */,
 				D1D2D3D4D5D6D7D8D9E0E1E2 /* TraceFun */,
+				F1F2F3F4F5F6F7F8F9A0A1A2 /* WeatherFun */,
 			);
 			name = ColoringFun;
 			productName = ColoringFun;
@@ -156,6 +157,7 @@
 			packageReferences = (
 				A1A2A3A4A5A6A7A8A9B0B1B2 /* XCLocalSwiftPackageReference "Packages/SpellingFun" */,
 				B1B2B3B4B5B6B7B8B9C0C1C2 /* XCLocalSwiftPackageReference "Packages/TraceFun" */,
+				E1E2E3E4E5E6E7E8E9F0F1F2 /* XCLocalSwiftPackageReference "Packages/WeatherFun" */,
 			);
 			projectDirPath = "";
 			projectRoot = "";
@@ -300,6 +302,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/TraceFun;
 		};
+		E1E2E3E4E5E6E7E8E9F0F1F2 /* Packages/WeatherFun */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/WeatherFun;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -312,6 +318,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B1B2B3B4B5B6B7B8B9C0C1C2 /* Packages/TraceFun */;
 			productName = TraceFun;
+		};
+		F1F2F3F4F5F6F7F8F9A0A1A2 /* WeatherFun */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E1E2E3E4E5E6E7E8E9F0F1F2 /* Packages/WeatherFun */;
+			productName = WeatherFun;
 		};
 /* End XCSwiftPackageProductDependency section */
 
