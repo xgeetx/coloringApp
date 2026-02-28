@@ -114,6 +114,6 @@ enum ParticleFactory {
 
 extension CGFloat {
     func weatherClamped(_ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
-        min(max(self, lo), hi)
+        Swift.min(Swift.max(self, lo), hi)
     }
 }
