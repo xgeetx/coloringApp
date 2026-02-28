@@ -1,6 +1,7 @@
 import SwiftUI
 import SpellingFun
 import TraceFun
+import WeatherFun
 
 // MARK: - App Descriptor
 
@@ -71,6 +72,15 @@ enum AppRegistry {
             tileColor: Color(r: 180, g: 255, b: 220),
             isAvailable: true,
             makeRootView: { AnyView(LetterTraceView()) }
+        ),
+        MiniAppDescriptor(
+            id: "weather",
+            displayName: "Weather Fun",
+            subtitle: "Paint the Weather!",
+            icon: "🌤️",
+            tileColor: Color(r: 180, g: 220, b: 255),
+            isAvailable: true,
+            makeRootView: { AnyView(WeatherView()) }
         ),
     ]
 }
