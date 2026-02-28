@@ -48,9 +48,9 @@ struct HubView: View {
                 }
                 .padding(.top, 36)
 
-                // App tiles
+                // App tiles — first 4 in 2x2 grid
                 LazyVGrid(columns: columns, spacing: 24) {
-                    ForEach(AppRegistry.apps) { app in
+                    ForEach(Array(AppRegistry.apps.prefix(4))) { app in
                         AppTileView(app: app) {
                             if app.isAvailable {
                                 activeApp = app
@@ -61,6 +61,23 @@ struct HubView: View {
                     }
                 }
                 .padding(.horizontal, 48)
+
+                // Overflow row — centered below grid
+                if AppRegistry.apps.count > 4 {
+                    HStack(spacing: 24) {
+                        ForEach(Array(AppRegistry.apps.dropFirst(4))) { app in
+                            AppTileView(app: app) {
+                                if app.isAvailable {
+                                    activeApp = app
+                                } else {
+                                    requestingApp = app
+                                }
+                            }
+                            .frame(maxWidth: UIScreen.main.bounds.width / 2 - 60)
+                        }
+                    }
+                    .padding(.horizontal, 48)
+                }
 
                 Spacer()
             }
