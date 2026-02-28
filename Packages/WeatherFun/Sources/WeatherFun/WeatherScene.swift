@@ -23,6 +23,8 @@ class WeatherScene: SKScene {
     // MARK: - State
     private var currentWeatherType: WeatherType = .sunny
     private var currentIntensity: CGFloat = 0.0
+    private var groundWeatherType: WeatherType?
+    private var lastFlashTime: TimeInterval = 0
 
     // MARK: - Scene Setup
 
@@ -49,6 +51,7 @@ class WeatherScene: SKScene {
         addChild(characterLayer)
 
         characterAnimator = CharacterAnimator(characterLayer: characterLayer)
+        characterAnimator.audioManager = audioManager
     }
 
     // MARK: - Sky
@@ -146,6 +149,8 @@ class WeatherScene: SKScene {
         // Update intensity-driven effects
         updateTintOverlay(for: weather, intensity: intensity)
         updateParticleIntensity(weather: weather, intensity: intensity)
+        updateGroundEffects(weather: weather, intensity: intensity)
+        updateLightningFlash(weather: weather, intensity: intensity, currentTime: currentTime)
         characterAnimator.update(currentTime: currentTime, weather: weather, intensity: intensity, sceneSize: size)
         audioManager?.update(weather: weather, intensity: intensity)
         currentIntensity = intensity
@@ -188,6 +193,100 @@ class WeatherScene: SKScene {
         case .cloudy:
             break
         }
+    }
+
+    // MARK: - Ground Effects
+
+    private func updateGroundEffects(weather: WeatherType, intensity: CGFloat) {
+        // Rebuild ground effects when weather type changes
+        if weather != groundWeatherType {
+            groundEffectsNode.removeAllChildren()
+            groundWeatherType = weather
+        }
+
+        let groundY = -size.height * 0.35
+        let show = intensity >= IntensityThreshold.groundEffects
+
+        switch weather {
+        case .rainy:
+            if groundEffectsNode.children.isEmpty && show {
+                // Add puddles
+                let positions: [CGFloat] = [-size.width * 0.25, size.width * 0.1, size.width * 0.3]
+                for (i, px) in positions.enumerated() {
+                    let puddle: SKSpriteNode
+                    if let img = UIImage(named: "puddle_overlay", in: Bundle.module, compatibleWith: nil) {
+                        puddle = SKSpriteNode(texture: SKTexture(image: img))
+                        puddle.setScale(0.15 + CGFloat(i) * 0.03)
+                    } else {
+                        puddle = SKSpriteNode(color: UIColor(red: 0.4, green: 0.5, blue: 0.8, alpha: 0.5), size: CGSize(width: 80, height: 30))
+                    }
+                    puddle.position = CGPoint(x: px, y: groundY + CGFloat(i) * 10)
+                    puddle.alpha = 0
+                    groundEffectsNode.addChild(puddle)
+                }
+            }
+            // Fade puddles with intensity
+            for child in groundEffectsNode.children {
+                let target = show ? (intensity - IntensityThreshold.groundEffects) / (1.0 - IntensityThreshold.groundEffects) : 0
+                child.alpha = target.weatherClamped(0, 0.8)
+            }
+
+        case .snowy:
+            if groundEffectsNode.children.isEmpty && show {
+                let snow: SKSpriteNode
+                if let img = UIImage(named: "snow_ground_overlay", in: Bundle.module, compatibleWith: nil) {
+                    snow = SKSpriteNode(texture: SKTexture(image: img))
+                    snow.setScale(min(size.width / snow.size.width, 1.0))
+                } else {
+                    snow = SKSpriteNode(color: .white, size: CGSize(width: size.width, height: 60))
+                }
+                snow.position = CGPoint(x: 0, y: groundY)
+                snow.alpha = 0
+                groundEffectsNode.addChild(snow)
+            }
+            for child in groundEffectsNode.children {
+                let target = show ? (intensity - IntensityThreshold.groundEffects) / (1.0 - IntensityThreshold.groundEffects) : 0
+                child.alpha = target.weatherClamped(0, 0.7)
+            }
+
+        case .sunny:
+            if groundEffectsNode.children.isEmpty && intensity > IntensityThreshold.peakEffects {
+                // Heat shimmer — semi-transparent wavy sprite
+                let shimmer = SKSpriteNode(color: UIColor(white: 1.0, alpha: 0.15), size: CGSize(width: size.width * 0.6, height: 20))
+                shimmer.position = CGPoint(x: 0, y: groundY + 30)
+                shimmer.alpha = 0
+                let wave = SKAction.sequence([
+                    SKAction.moveBy(x: 0, y: 4, duration: 0.8),
+                    SKAction.moveBy(x: 0, y: -4, duration: 0.8)
+                ])
+                shimmer.run(SKAction.repeatForever(wave))
+                groundEffectsNode.addChild(shimmer)
+            }
+            for child in groundEffectsNode.children {
+                child.alpha = intensity > IntensityThreshold.peakEffects ? 0.3 : 0
+            }
+
+        case .cloudy:
+            groundEffectsNode.removeAllChildren()
+        }
+    }
+
+    // MARK: - Lightning Flash
+
+    private func updateLightningFlash(weather: WeatherType, intensity: CGFloat, currentTime: TimeInterval) {
+        guard weather == .rainy, intensity > IntensityThreshold.peakEffects else { return }
+        guard currentTime - lastFlashTime > 4.0 + Double.random(in: 0...3) else { return }
+
+        lastFlashTime = currentTime
+        let flash = SKSpriteNode(color: .white, size: size)
+        flash.zPosition = 60
+        flash.alpha = 0
+        addChild(flash)
+        flash.run(SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.6, duration: 0.05),
+            SKAction.fadeAlpha(to: 0, duration: 0.3),
+            SKAction.removeFromParent()
+        ]))
     }
 
     // MARK: - Layout
