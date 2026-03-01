@@ -58,7 +58,7 @@ final class WeatherViewModel: ObservableObject {
         displayLink = link
     }
 
-    private func updateIntensity() {
+    func updateIntensity() {
         if isTouching {
             intensity = min(1.0, intensity + IntensityConfig.rampRate)
         } else if intensity > 0 {
@@ -122,7 +122,7 @@ final class WeatherViewModel: ObservableObject {
 
     /// Maps WMO weather codes to our WeatherType
     /// See: https://open-meteo.com/en/docs#weathervariables
-    private func mapWeatherCode(_ code: Int) -> WeatherType {
+    func mapWeatherCode(_ code: Int) -> WeatherType {
         switch code {
         case 0, 1:
             // Clear sky, mainly clear
