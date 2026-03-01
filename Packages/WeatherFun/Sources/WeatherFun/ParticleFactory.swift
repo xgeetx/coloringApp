@@ -112,8 +112,4 @@ enum ParticleFactory {
     }
 }
 
-extension CGFloat {
-    func weatherClamped(_ lo: CGFloat, _ hi: CGFloat) -> CGFloat {
-        Swift.min(Swift.max(self, lo), hi)
-    }
-}
+// weatherClamped is defined in WeatherFunCore
