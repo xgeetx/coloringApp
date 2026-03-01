@@ -36,17 +36,9 @@ class CharacterAnimator {
         lastTriggerTime = currentTime
 
         let config = CharacterConfig.config(for: weather)
-        let sprite: SKSpriteNode
 
-        // Try to load sprite sheet from bundle
-        if let textures = loadSpriteSheet(named: config.spriteSheet, frameCount: config.frameCount) {
-            sprite = SKSpriteNode(texture: textures.first)
-            let animate = SKAction.animate(with: textures, timePerFrame: config.timePerFrame)
-            sprite.run(SKAction.repeatForever(animate))
-        } else {
-            // Fallback: colored circle with emoji
-            sprite = makePlaceholderSprite(for: weather)
-        }
+        // Emoji character (sprite sheet assets need replacement)
+        let sprite = makePlaceholderSprite(for: weather)
 
         // Play character sound effect
         audioManager?.playCharacterSound(for: weather)

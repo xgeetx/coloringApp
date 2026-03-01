@@ -33,31 +33,45 @@ public struct WeatherView: View {
 
             // HUD overlay
             VStack {
-                HStack {
-                    // Home button
+                HStack(alignment: .top) {
+                    // Home button — big and clear
                     Button {
                         dismiss()
                     } label: {
-                        Text("🏠")
-                            .font(.system(size: 36))
-                            .padding(12)
-                            .background(Circle().fill(.white.opacity(0.7)))
+                        HStack(spacing: 6) {
+                            Text("🏠")
+                                .font(.system(size: 32))
+                            Text("Home")
+                                .font(.system(size: 18, weight: .bold, design: .rounded))
+                                .foregroundColor(Color(r: 60, g: 60, b: 80))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(
+                            Capsule().fill(.white.opacity(0.85))
+                        )
+                        .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
                     }
-                    .padding(.leading, 20)
-                    .padding(.top, 10)
+                    .padding(.leading, 16)
+                    .padding(.top, 12)
 
                     Spacer()
 
-                    // Settings gear — triple tap
-                    Text("⚙️")
-                        .font(.system(size: 24))
-                        .padding(10)
-                        .background(Circle().fill(.white.opacity(0.3)))
+                    // Weather badge — shows current weather type
+                    weatherBadge
+                        .padding(.top, 12)
+
+                    Spacer()
+
+                    // Settings — invisible triple-tap zone (parent only)
+                    Color.clear
+                        .frame(width: 60, height: 60)
+                        .contentShape(Rectangle())
                         .onTapGesture(count: 3) {
                             showSettings = true
                         }
-                        .padding(.trailing, 20)
-                        .padding(.top, 10)
+                        .padding(.trailing, 16)
+                        .padding(.top, 12)
                 }
                 Spacer()
             }
@@ -80,6 +94,27 @@ public struct WeatherView: View {
                 .weatherDragIndicator()
         }
     }
+
+    private var weatherBadge: some View {
+        let emoji: String
+        let label: String
+        switch viewModel.weatherType {
+        case .sunny:  emoji = "☀️"; label = "Sunny"
+        case .cloudy: emoji = "☁️"; label = "Cloudy"
+        case .rainy:  emoji = "🌧️"; label = "Rainy"
+        case .snowy:  emoji = "❄️"; label = "Snowy"
+        }
+        return HStack(spacing: 4) {
+            Text(emoji).font(.system(size: 28))
+            Text(label)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundColor(Color(r: 60, g: 60, b: 80))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Capsule().fill(.white.opacity(0.85)))
+        .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+    }
 }
 
 // MARK: - Settings Sheet
@@ -92,9 +127,10 @@ private struct SettingsSheet: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 24) {
-                Text("Weather Location")
+                Text("Weather Settings")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
 
+                // Zip code
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Zip Code")
                         .font(.system(size: 16, weight: .medium))
@@ -122,7 +158,7 @@ private struct SettingsSheet: View {
                         dismiss()
                     }
                 } label: {
-                    Text("Save")
+                    Text("Save Location")
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
                         .padding(.horizontal, 48)
@@ -130,12 +166,58 @@ private struct SettingsSheet: View {
                         .background(Capsule().fill(Color(r: 80, g: 160, b: 255)))
                 }
 
+                // Weather override for testing
+                VStack(spacing: 8) {
+                    Text("Test Weather")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.secondary)
+
+                    HStack(spacing: 12) {
+                        weatherButton("☀️", type: .sunny)
+                        weatherButton("☁️", type: .cloudy)
+                        weatherButton("🌧️", type: .rainy)
+                        weatherButton("❄️", type: .snowy)
+                    }
+
+                    if viewModel.weatherOverride != nil {
+                        Button {
+                            viewModel.weatherOverride = nil
+                            viewModel.fetchWeather()
+                        } label: {
+                            Text("Use Real Weather")
+                                .font(.system(size: 14, weight: .medium, design: .rounded))
+                                .foregroundColor(.blue)
+                        }
+                    }
+                }
+                .padding(.horizontal, 32)
+
                 Spacer()
             }
             .padding(.top, 24)
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear { editingZip = viewModel.zipCode }
+    }
+
+    private func weatherButton(_ emoji: String, type: WeatherType) -> some View {
+        let isActive = viewModel.weatherType == type
+        return Button {
+            viewModel.weatherOverride = type
+            viewModel.weatherType = type
+        } label: {
+            Text(emoji)
+                .font(.system(size: 36))
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(isActive ? Color.blue.opacity(0.2) : Color(.systemGray6))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(isActive ? Color.blue : Color.clear, lineWidth: 2)
+                )
+        }
     }
 }
 

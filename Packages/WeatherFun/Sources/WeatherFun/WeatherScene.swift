@@ -103,10 +103,19 @@ class WeatherScene: SKScene {
             // Placeholder: green ground rectangle
             backgroundSprite = SKSpriteNode(color: UIColor(red: 0.4, green: 0.7, blue: 0.3, alpha: 1), size: CGSize(width: 800, height: 300))
         }
-        backgroundSprite.position = CGPoint(x: 0, y: -size.height * 0.15)
         backgroundSprite.zPosition = 0
-        backgroundSprite.setScale(min(size.width / backgroundSprite.size.width, 1.0))
+        scaleAndPositionBackground()
         addChild(backgroundSprite)
+    }
+
+    private func scaleAndPositionBackground() {
+        guard let bg = backgroundSprite else { return }
+        // Scale to fill width, position at bottom half of screen
+        let scale = size.width / bg.size.width
+        bg.setScale(scale)
+        // Place so bottom edge aligns with bottom of screen
+        let scaledH = bg.size.height * scale
+        bg.position = CGPoint(x: 0, y: -size.height / 2 + scaledH / 2)
     }
 
     // MARK: - Tint Overlay
@@ -302,9 +311,6 @@ class WeatherScene: SKScene {
         skyBottom?.position = CGPoint(x: 0, y: -halfH / 2)
         tintOverlay?.size = size
 
-        if let bg = backgroundSprite, let tex = bg.texture {
-            bg.setScale(min(w / tex.size().width, 1.0))
-            bg.position = CGPoint(x: 0, y: -h * 0.15)
-        }
+        scaleAndPositionBackground()
     }
 }
