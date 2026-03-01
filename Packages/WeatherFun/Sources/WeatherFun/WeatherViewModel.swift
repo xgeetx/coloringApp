@@ -22,7 +22,7 @@ final class WeatherViewModel: ObservableObject {
 
     // MARK: - Init
     init() {
-        self.zipCode = UserDefaults.standard.string(forKey: "weatherZipCode") ?? "10001"
+        self.zipCode = UserDefaults.standard.string(forKey: "weatherZipCode") ?? "43123"
     }
 
     // MARK: - Lifecycle
@@ -81,29 +81,55 @@ final class WeatherViewModel: ObservableObject {
                     self.weatherType = self.cachedWeather ?? self.randomWeather()
                     return
                 }
-                self.fetchFromWeatherKit(location: location)
+                self.fetchFromOpenMeteo(location: location)
             }
         }
     }
 
-    private func fetchFromWeatherKit(location: CLLocation) {
-        #if canImport(WeatherKit)
-        if #available(iOS 16, *) {
-            Task {
-                do {
-                    let weather = try await WeatherServiceBridge.fetchCurrent(location: location)
-                    self.weatherType = weather
-                    self.cachedWeather = weather
-                } catch {
-                    self.weatherType = self.cachedWeather ?? self.randomWeather()
-                }
-            }
-        } else {
-            self.weatherType = randomWeather()
+    // MARK: - Open-Meteo API (free, no key required)
+
+    private func fetchFromOpenMeteo(location: CLLocation) {
+        let lat = location.coordinate.latitude
+        let lon = location.coordinate.longitude
+        let urlString = "https://api.open-meteo.com/v1/forecast?latitude=\(lat)&longitude=\(lon)&current=weather_code&timezone=auto"
+
+        guard let url = URL(string: urlString) else {
+            self.weatherType = cachedWeather ?? randomWeather()
+            return
         }
-        #else
-        self.weatherType = cachedWeather ?? randomWeather()
-        #endif
+
+        Task {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let response = try JSONDecoder().decode(OpenMeteoResponse.self, from: data)
+                let weather = mapWeatherCode(response.current.weatherCode)
+                self.weatherType = weather
+                self.cachedWeather = weather
+            } catch {
+                self.weatherType = self.cachedWeather ?? self.randomWeather()
+            }
+        }
+    }
+
+    /// Maps WMO weather codes to our WeatherType
+    /// See: https://open-meteo.com/en/docs#weathervariables
+    private func mapWeatherCode(_ code: Int) -> WeatherType {
+        switch code {
+        case 0, 1:
+            // Clear sky, mainly clear
+            return .sunny
+        case 2, 3, 45, 48:
+            // Partly cloudy, overcast, fog, depositing rime fog
+            return .cloudy
+        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99:
+            // Drizzle, rain, freezing rain, rain showers, thunderstorm
+            return .rainy
+        case 71, 73, 75, 77, 85, 86:
+            // Snow fall, snow grains, snow showers
+            return .snowy
+        default:
+            return .cloudy
+        }
     }
 
     private func randomWeather() -> WeatherType {
@@ -122,31 +148,16 @@ private class DisplayLinkTarget {
     @objc func tick() { callback() }
 }
 
-// MARK: - WeatherKit Bridge (iOS 16+)
+// MARK: - Open-Meteo JSON Response
 
-#if canImport(WeatherKit)
-import WeatherKit
+private struct OpenMeteoResponse: Decodable {
+    let current: CurrentWeather
 
-enum WeatherServiceBridge {
-    @available(iOS 16, *)
-    static func fetchCurrent(location: CLLocation) async throws -> WeatherType {
-        let service = WeatherService.shared
-        let weather = try await service.weather(for: location, including: .current)
-        return mapCondition(weather.condition)
-    }
+    struct CurrentWeather: Decodable {
+        let weatherCode: Int
 
-    @available(iOS 16, *)
-    private static func mapCondition(_ condition: WeatherCondition) -> WeatherType {
-        switch condition {
-        case .clear, .mostlyClear, .hot:
-            return .sunny
-        case .rain, .heavyRain, .drizzle, .thunderstorms, .tropicalStorm:
-            return .rainy
-        case .snow, .heavySnow, .sleet, .freezingRain, .freezingDrizzle, .blizzard, .flurries:
-            return .snowy
-        default:
-            return .cloudy
+        enum CodingKeys: String, CodingKey {
+            case weatherCode = "weather_code"
         }
     }
 }
-#endif
