@@ -1,0 +1,97 @@
+{
+  "output_dir": "Packages/WeatherFun/Sources/WeatherFun/Resources",
+  "images": [
+    {
+      "name": "neighborhood_base.png",
+      "prompt": "A simple children's book illustration of a cozy neighborhood street, front view. A small house with a red door and white picket fence, a green tree, a sidewalk with a fire hydrant, and a grassy yard. Flat colors, soft pastels, rounded shapes, no outlines, digital illustration style similar to Peppa Pig or Hey Duggee. Daytime with a light blue sky. No people or animals. Wide landscape aspect ratio, suitable as a game background layer.",
+      "size": "1792x1024",
+      "quality": "standard"
+    },
+    {
+      "name": "character_sunny_sheet.png",
+      "prompt": "A horizontal sprite sheet of a cartoon toddler character in 4 walking/skipping poses, wearing yellow sunglasses and a sun hat. Simple children's book illustration style, flat pastel colors, rounded shapes, no outlines, similar to Peppa Pig or Hey Duggee. White background, evenly spaced frames. Each frame is 128x128 pixels. The character faces right.",
+      "size": "1024x1024",
+      "quality": "standard"
+    },
+    {
+      "name": "character_cloudy_sheet.png",
+      "prompt": "A horizontal sprite sheet of a cartoon toddler character in 4 walking poses, holding a small blue umbrella and wearing a gray raincoat. Simple children's book illustration style, flat pastel colors, rounded shapes, no outlines, similar to Peppa Pig or Hey Duggee. White background, evenly spaced frames. Each frame is 128x128 pixels. The character faces right.",
+      "size": "1024x1024",
+      "quality": "standard"
+    },
+    {
+      "name": "character_rainy_sheet.png",
+      "prompt": "A horizontal sprite sheet of a cartoon toddler character in 4 running and splashing poses, wearing red rain boots and a yellow raincoat. Simple children's book illustration style, flat pastel colors, rounded shapes, no outlines, similar to Peppa Pig or Hey Duggee. White background, evenly spaced frames. Each frame is 128x128 pixels. The character faces right.",
+      "size": "1024x1024",
+      "quality": "standard"
+    },
+    {
+      "name": "character_snowy_sheet.png",
+      "prompt": "A horizontal sprite sheet of a cartoon toddler character in 4 waddling poses, wearing a puffy winter coat with a hood, scarf, and mittens. Simple children's book illustration style, flat pastel colors, rounded shapes, no outlines, similar to Peppa Pig or Hey Duggee. White background, evenly spaced frames. Each frame is 128x128 pixels. The character faces right.",
+      "size": "1024x1024",
+      "quality": "standard"
+    },
+    {
+      "name": "puddle_overlay.png",
+      "prompt": "A single flat cartoon puddle seen from above on a transparent background. Simple oval shape with subtle blue reflection highlights. Children's book illustration style, flat pastel colors, no outlines. Suitable for a 2D game overlay.",
+      "size": "1024x1024",
+      "quality": "standard"
+    },
+    {
+      "name": "snow_ground_overlay.png",
+      "prompt": "A wide horizontal strip of cartoon snow ground cover, white with subtle light blue shadows and soft rolling bumps. Simple children's book illustration style, flat colors, no outlines, similar to Peppa Pig. Transparent above the snow line. Wide landscape format, suitable as a ground layer overlay in a 2D game.",
+      "size": "1792x1024",
+      "quality": "standard"
+    }
+  ],
+  "audio": [
+    {
+      "name": "ambient_sunny.m4a",
+      "search": "birds chirping morning gentle",
+      "source": "pixabay",
+      "format": "m4a"
+    },
+    {
+      "name": "ambient_cloudy.m4a",
+      "search": "gentle breeze wind ambient",
+      "source": "pixabay",
+      "format": "m4a"
+    },
+    {
+      "name": "ambient_rainy.m4a",
+      "search": "soft rain ambient",
+      "source": "pixabay",
+      "format": "m4a"
+    },
+    {
+      "name": "ambient_snowy.m4a",
+      "search": "cold wind winter ambient",
+      "source": "pixabay",
+      "format": "m4a"
+    },
+    {
+      "name": "sfx_giggle.caf",
+      "search": "child giggle cute",
+      "source": "pixabay",
+      "format": "caf"
+    },
+    {
+      "name": "sfx_wind_gust.caf",
+      "search": "wind gust whoosh short",
+      "source": "pixabay",
+      "format": "caf"
+    },
+    {
+      "name": "sfx_splash.caf",
+      "search": "puddle splash water step",
+      "source": "pixabay",
+      "format": "caf"
+    },
+    {
+      "name": "sfx_snow_crunch.caf",
+      "search": "snow footstep crunch",
+      "source": "pixabay",
+      "format": "caf"
+    }
+  ]
+}
