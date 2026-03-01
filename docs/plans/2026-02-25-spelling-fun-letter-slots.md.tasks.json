@@ -1,0 +1,14 @@
+{
+  "planPath": "docs/plans/2026-02-25-spelling-fun-letter-slots.md",
+  "tasks": [
+    {"id": 3, "subject": "Task 1: Add SlotState model and slot tracking to ViewModel", "status": "pending"},
+    {"id": 4, "subject": "Task 2: Add slot snap detection and reject logic", "status": "pending", "blockedBy": [3]},
+    {"id": 5, "subject": "Task 3: Modify tile scattering to avoid center slot row", "status": "pending", "blockedBy": [3]},
+    {"id": 6, "subject": "Task 4: Add SlotRowView and SlotCell components", "status": "pending", "blockedBy": [4, 5]},
+    {"id": 7, "subject": "Task 5: Wire drag-end to slot snap detection", "status": "pending", "blockedBy": [4, 6]},
+    {"id": 8, "subject": "Task 6: Add confetti celebration view", "status": "pending", "blockedBy": [6]},
+    {"id": 9, "subject": "Task 7: Handle duplicate letters and edge cases", "status": "pending", "blockedBy": [7]},
+    {"id": 10, "subject": "Task 8: Build verification", "status": "pending", "blockedBy": [9]}
+  ],
+  "lastUpdated": "2026-02-25T12:00:00Z"
+}

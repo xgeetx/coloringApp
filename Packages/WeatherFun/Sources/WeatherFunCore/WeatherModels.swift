@@ -22,9 +22,11 @@ public enum IntensityThreshold {
 
 public struct IntensityConfig {
     /// Per-frame increment while touching (~60fps → 0→1 in ~13s)
-    public static let rampRate: CGFloat   = 0.005
+    /// 1.0 / (13 * 60) ≈ 0.00128
+    public static let rampRate: CGFloat   = 0.00128
     /// Per-frame decrement while not touching (1→0 in ~33s)
-    public static let decayRate: CGFloat  = 0.002
+    /// 1.0 / (33 * 60) ≈ 0.000505
+    public static let decayRate: CGFloat  = 0.000505
 }
 
 // MARK: - Sky Colors Per Weather Type
