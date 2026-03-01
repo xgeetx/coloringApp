@@ -9,6 +9,7 @@ final class WeatherViewModel: ObservableObject {
     var weatherType: WeatherType = .sunny
     var intensity: CGFloat = 0.0
     var isTouching: Bool = false
+    var weatherOverride: WeatherType? = nil
 
     // MARK: - Published State (only for SwiftUI settings sheet)
     @Published var zipCode: String {
@@ -68,6 +69,12 @@ final class WeatherViewModel: ObservableObject {
     // MARK: - Weather Fetch
 
     func fetchWeather() {
+        // If manual override is active, skip API fetch
+        if let override = weatherOverride {
+            weatherType = override
+            return
+        }
+
         let zip = zipCode
         guard zip.count == 5, zip.allSatisfy({ $0.isNumber }) else {
             zipError = "Enter a 5-digit zip code"
