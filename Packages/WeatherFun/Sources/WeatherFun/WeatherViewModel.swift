@@ -59,11 +59,7 @@ final class WeatherViewModel: ObservableObject {
     }
 
     func updateIntensity() {
-        if isTouching {
-            intensity = min(1.0, intensity + IntensityConfig.rampRate)
-        } else if intensity > 0 {
-            intensity = max(0.0, intensity - IntensityConfig.decayRate)
-        }
+        intensity = IntensityLogic.updateIntensity(current: intensity, isTouching: isTouching)
     }
 
     // MARK: - Weather Fetch
@@ -120,25 +116,8 @@ final class WeatherViewModel: ObservableObject {
         }
     }
 
-    /// Maps WMO weather codes to our WeatherType
-    /// See: https://open-meteo.com/en/docs#weathervariables
     func mapWeatherCode(_ code: Int) -> WeatherType {
-        switch code {
-        case 0, 1:
-            // Clear sky, mainly clear
-            return .sunny
-        case 2, 3, 45, 48:
-            // Partly cloudy, overcast, fog, depositing rime fog
-            return .cloudy
-        case 51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99:
-            // Drizzle, rain, freezing rain, rain showers, thunderstorm
-            return .rainy
-        case 71, 73, 75, 77, 85, 86:
-            // Snow fall, snow grains, snow showers
-            return .snowy
-        default:
-            return .cloudy
-        }
+        WeatherCodeMapper.mapWeatherCode(code)
     }
 
     private func randomWeather() -> WeatherType {

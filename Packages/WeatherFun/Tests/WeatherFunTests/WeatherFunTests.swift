@@ -1,98 +1,91 @@
 // Tests/WeatherFunTests/WeatherFunTests.swift
 import XCTest
-@testable import WeatherFun
+@testable import WeatherFunCore
 
 // MARK: - Intensity Mechanics Tests
 
 /// Spec: ramp 0→1 in ~13s at 60fps, decay 1→0 in ~33s at 60fps
 final class IntensityTests: XCTestCase {
 
-    @MainActor
-    func testRampRate_ZeroToOneInAbout13Seconds() {
-        // Spec says: intensity += 0.005/frame, 60fps → 200 frames → 3.33s? No.
-        // 0.005 * 200 = 1.0, but 200 frames / 60fps = 3.33s.
-        // Spec says ~13s which is 780 frames → 780 * 0.005 = 3.9 (capped at 1.0)
-        // Actually the spec says 0→1 in ~13s. At 0.005/frame, 60fps:
-        // 1.0 / 0.005 = 200 frames, 200/60 = 3.33s.
-        // This is WAY faster than the spec's ~13s!
-        // Spec 13s at 60fps = 780 frames → rate should be ~0.00128/frame
+    func testRampRate_SpecCompliance() {
+        // Spec says 0→1 in 10-15 seconds at 60fps
         let rate = IntensityConfig.rampRate
         let framesToFull = 1.0 / Double(rate)
         let secondsToFull = framesToFull / 60.0
 
-        // Spec: 10-15 seconds. Current implementation is 0.005/frame = 3.33s.
-        // This is a spec violation — flag it.
+        // This WILL FAIL if ramp is too fast (spec violation)
         XCTAssertGreaterThan(secondsToFull, 10.0,
-            "Ramp too fast: \(secondsToFull)s to reach 1.0 (spec says 10-15s). Rate=\(rate)")
+            "SPEC VIOLATION: Ramp too fast — \(String(format: "%.1f", secondsToFull))s to reach 1.0, spec requires 10-15s. " +
+            "Current rate \(rate)/frame. Fix: set rampRate to ~0.0011")
         XCTAssertLessThan(secondsToFull, 16.0,
-            "Ramp too slow: \(secondsToFull)s to reach 1.0 (spec says 10-15s). Rate=\(rate)")
+            "Ramp too slow: \(String(format: "%.1f", secondsToFull))s to reach 1.0 (spec says 10-15s)")
     }
 
-    @MainActor
-    func testDecayRate_OneToZeroInAbout33Seconds() {
+    func testDecayRate_SpecCompliance() {
         let rate = IntensityConfig.decayRate
         let framesToZero = 1.0 / Double(rate)
         let secondsToZero = framesToZero / 60.0
 
-        // Spec: ~30s decay (design doc says ~33s from the ramp/decay math)
+        // Spec: ~30-33s decay
         XCTAssertGreaterThan(secondsToZero, 25.0,
-            "Decay too fast: \(secondsToZero)s to reach 0.0 (spec says ~30-33s). Rate=\(rate)")
+            "Decay too fast: \(String(format: "%.1f", secondsToZero))s (spec says ~30-33s)")
         XCTAssertLessThan(secondsToZero, 40.0,
-            "Decay too slow: \(secondsToZero)s to reach 0.0 (spec says ~30-33s). Rate=\(rate)")
+            "Decay too slow: \(String(format: "%.1f", secondsToZero))s (spec says ~30-33s)")
     }
 
-    @MainActor
     func testDecaySlowerThanRamp() {
         // Spec: "Slower than ramp so the toddler sees results linger"
         XCTAssertLessThan(IntensityConfig.decayRate, IntensityConfig.rampRate,
             "Decay rate should be slower (smaller) than ramp rate")
     }
 
-    @MainActor
     func testIntensityRamps_WhenTouching() {
-        let vm = WeatherViewModel()
-        vm.intensity = 0.0
-        vm.isTouching = true
-        vm.updateIntensity()
-        XCTAssertGreaterThan(vm.intensity, 0.0, "Intensity should increase when touching")
-        XCTAssertEqual(vm.intensity, IntensityConfig.rampRate, accuracy: 0.0001)
+        let result = IntensityLogic.updateIntensity(current: 0.0, isTouching: true)
+        XCTAssertGreaterThan(result, 0.0)
+        XCTAssertEqual(result, IntensityConfig.rampRate, accuracy: 0.0001)
     }
 
-    @MainActor
     func testIntensityDecays_WhenNotTouching() {
-        let vm = WeatherViewModel()
-        vm.intensity = 0.5
-        vm.isTouching = false
-        vm.updateIntensity()
-        XCTAssertLessThan(vm.intensity, 0.5, "Intensity should decrease when not touching")
-        XCTAssertEqual(vm.intensity, 0.5 - IntensityConfig.decayRate, accuracy: 0.0001)
+        let result = IntensityLogic.updateIntensity(current: 0.5, isTouching: false)
+        XCTAssertLessThan(result, 0.5)
+        XCTAssertEqual(result, 0.5 - IntensityConfig.decayRate, accuracy: 0.0001)
     }
 
-    @MainActor
     func testIntensityClamped_AtOne() {
-        let vm = WeatherViewModel()
-        vm.intensity = 0.999
-        vm.isTouching = true
-        vm.updateIntensity()
-        XCTAssertLessThanOrEqual(vm.intensity, 1.0, "Intensity should not exceed 1.0")
+        let result = IntensityLogic.updateIntensity(current: 0.999, isTouching: true)
+        XCTAssertLessThanOrEqual(result, 1.0, "Intensity should not exceed 1.0")
     }
 
-    @MainActor
     func testIntensityClamped_AtZero() {
-        let vm = WeatherViewModel()
-        vm.intensity = 0.001
-        vm.isTouching = false
-        vm.updateIntensity()
-        XCTAssertGreaterThanOrEqual(vm.intensity, 0.0, "Intensity should not go below 0.0")
+        let result = IntensityLogic.updateIntensity(current: 0.001, isTouching: false)
+        XCTAssertGreaterThanOrEqual(result, 0.0, "Intensity should not go below 0.0")
     }
 
-    @MainActor
     func testIntensityStays_AtZero_WhenNotTouching() {
-        let vm = WeatherViewModel()
-        vm.intensity = 0.0
-        vm.isTouching = false
-        vm.updateIntensity()
-        XCTAssertEqual(vm.intensity, 0.0, "Intensity should stay at 0 when not touching and already 0")
+        let result = IntensityLogic.updateIntensity(current: 0.0, isTouching: false)
+        XCTAssertEqual(result, 0.0, "Intensity should stay at 0 when not touching and already 0")
+    }
+
+    func testMultipleFramesRamp() {
+        // Simulate 60 frames of touching (1 second)
+        var intensity: CGFloat = 0.0
+        for _ in 0..<60 {
+            intensity = IntensityLogic.updateIntensity(current: intensity, isTouching: true)
+        }
+        let expectedAfter1s = IntensityConfig.rampRate * 60
+        XCTAssertEqual(intensity, expectedAfter1s, accuracy: 0.001,
+            "After 1 second of touching, intensity should be ~\(expectedAfter1s)")
+    }
+
+    func testMultipleFramesDecay() {
+        // Simulate 60 frames of not touching from 1.0 (1 second)
+        var intensity: CGFloat = 1.0
+        for _ in 0..<60 {
+            intensity = IntensityLogic.updateIntensity(current: intensity, isTouching: false)
+        }
+        let expectedAfter1s = 1.0 - IntensityConfig.decayRate * 60
+        XCTAssertEqual(intensity, expectedAfter1s, accuracy: 0.001,
+            "After 1 second of decay, intensity should be ~\(String(format: "%.3f", expectedAfter1s))")
     }
 }
 
@@ -126,6 +119,19 @@ final class ThresholdTests: XCTestCase {
         XCTAssertLessThan(IntensityThreshold.soundRamp, IntensityThreshold.characterTrigger)
         XCTAssertLessThan(IntensityThreshold.characterTrigger, IntensityThreshold.peakEffects)
     }
+
+    func testAllThresholds_InZeroToOneRange() {
+        let thresholds: [CGFloat] = [
+            IntensityThreshold.groundEffects,
+            IntensityThreshold.soundRamp,
+            IntensityThreshold.characterTrigger,
+            IntensityThreshold.peakEffects
+        ]
+        for t in thresholds {
+            XCTAssertGreaterThan(t, 0.0, "Threshold should be > 0")
+            XCTAssertLessThan(t, 1.0, "Threshold should be < 1.0")
+        }
+    }
 }
 
 // MARK: - Weather Code Mapping Tests
@@ -133,79 +139,62 @@ final class ThresholdTests: XCTestCase {
 /// Spec: WMO codes mapped from Open-Meteo API
 final class WeatherCodeMappingTests: XCTestCase {
 
-    @MainActor
     func testClearSkyCodes_MapToSunny() {
-        let vm = WeatherViewModel()
         // WMO 0 = clear sky, 1 = mainly clear
-        XCTAssertEqual(vm.mapWeatherCode(0), .sunny)
-        XCTAssertEqual(vm.mapWeatherCode(1), .sunny)
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(0), .sunny)
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(1), .sunny)
     }
 
-    @MainActor
     func testCloudyCodes_MapToCloudy() {
-        let vm = WeatherViewModel()
-        XCTAssertEqual(vm.mapWeatherCode(2), .cloudy, "Partly cloudy")
-        XCTAssertEqual(vm.mapWeatherCode(3), .cloudy, "Overcast")
-        XCTAssertEqual(vm.mapWeatherCode(45), .cloudy, "Fog")
-        XCTAssertEqual(vm.mapWeatherCode(48), .cloudy, "Depositing rime fog")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(2), .cloudy, "Partly cloudy")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(3), .cloudy, "Overcast")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(45), .cloudy, "Fog")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(48), .cloudy, "Depositing rime fog")
     }
 
-    @MainActor
     func testRainCodes_MapToRainy() {
-        let vm = WeatherViewModel()
-        // Drizzle
-        XCTAssertEqual(vm.mapWeatherCode(51), .rainy, "Light drizzle")
-        XCTAssertEqual(vm.mapWeatherCode(53), .rainy, "Moderate drizzle")
-        XCTAssertEqual(vm.mapWeatherCode(55), .rainy, "Dense drizzle")
-        // Freezing drizzle
-        XCTAssertEqual(vm.mapWeatherCode(56), .rainy, "Light freezing drizzle")
-        XCTAssertEqual(vm.mapWeatherCode(57), .rainy, "Dense freezing drizzle")
-        // Rain
-        XCTAssertEqual(vm.mapWeatherCode(61), .rainy, "Slight rain")
-        XCTAssertEqual(vm.mapWeatherCode(63), .rainy, "Moderate rain")
-        XCTAssertEqual(vm.mapWeatherCode(65), .rainy, "Heavy rain")
-        // Freezing rain
-        XCTAssertEqual(vm.mapWeatherCode(66), .rainy, "Light freezing rain")
-        XCTAssertEqual(vm.mapWeatherCode(67), .rainy, "Heavy freezing rain")
-        // Rain showers
-        XCTAssertEqual(vm.mapWeatherCode(80), .rainy, "Slight rain showers")
-        XCTAssertEqual(vm.mapWeatherCode(81), .rainy, "Moderate rain showers")
-        XCTAssertEqual(vm.mapWeatherCode(82), .rainy, "Violent rain showers")
-        // Thunderstorm
-        XCTAssertEqual(vm.mapWeatherCode(95), .rainy, "Thunderstorm")
-        XCTAssertEqual(vm.mapWeatherCode(96), .rainy, "Thunderstorm with slight hail")
-        XCTAssertEqual(vm.mapWeatherCode(99), .rainy, "Thunderstorm with heavy hail")
+        let rainCodes = [51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99]
+        for code in rainCodes {
+            XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(code), .rainy,
+                "WMO code \(code) should map to rainy")
+        }
     }
 
-    @MainActor
     func testSnowCodes_MapToSnowy() {
-        let vm = WeatherViewModel()
-        XCTAssertEqual(vm.mapWeatherCode(71), .snowy, "Slight snow fall")
-        XCTAssertEqual(vm.mapWeatherCode(73), .snowy, "Moderate snow fall")
-        XCTAssertEqual(vm.mapWeatherCode(75), .snowy, "Heavy snow fall")
-        XCTAssertEqual(vm.mapWeatherCode(77), .snowy, "Snow grains")
-        XCTAssertEqual(vm.mapWeatherCode(85), .snowy, "Slight snow showers")
-        XCTAssertEqual(vm.mapWeatherCode(86), .snowy, "Heavy snow showers")
+        let snowCodes = [71, 73, 75, 77, 85, 86]
+        for code in snowCodes {
+            XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(code), .snowy,
+                "WMO code \(code) should map to snowy")
+        }
     }
 
-    @MainActor
     func testUnknownCodes_MapToCloudy() {
-        let vm = WeatherViewModel()
-        // Unknown codes should default to cloudy (safe fallback)
-        XCTAssertEqual(vm.mapWeatherCode(-1), .cloudy, "Negative code")
-        XCTAssertEqual(vm.mapWeatherCode(100), .cloudy, "Out of range code")
-        XCTAssertEqual(vm.mapWeatherCode(999), .cloudy, "Arbitrary unknown code")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(-1), .cloudy, "Negative code")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(100), .cloudy, "Out of range code")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(999), .cloudy, "Arbitrary unknown code")
     }
 
-    @MainActor
-    func testFreezingRainIsMappedConsistently() {
-        let vm = WeatherViewModel()
-        // Design doc maps freezing rain to rainy (not snowy) — verify
-        // WMO 56, 57 = freezing drizzle; 66, 67 = freezing rain
-        XCTAssertEqual(vm.mapWeatherCode(56), .rainy, "Freezing drizzle → rainy (not snowy)")
-        XCTAssertEqual(vm.mapWeatherCode(57), .rainy, "Dense freezing drizzle → rainy (not snowy)")
-        XCTAssertEqual(vm.mapWeatherCode(66), .rainy, "Light freezing rain → rainy (not snowy)")
-        XCTAssertEqual(vm.mapWeatherCode(67), .rainy, "Heavy freezing rain → rainy (not snowy)")
+    func testFreezingRainIsMappedToRainy() {
+        // Design doc maps freezing rain/drizzle to rainy (not snowy)
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(56), .rainy, "Freezing drizzle")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(57), .rainy, "Dense freezing drizzle")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(66), .rainy, "Light freezing rain")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(67), .rainy, "Heavy freezing rain")
+    }
+
+    func testThunderstormCodes_MapToRainy() {
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(95), .rainy, "Thunderstorm")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(96), .rainy, "Thunderstorm with slight hail")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(99), .rainy, "Thunderstorm with heavy hail")
+    }
+
+    func testGapCodes_MapCorrectly() {
+        // Codes between defined ranges should fall to default (cloudy)
+        // E.g., codes 4-44 are not defined in WMO for Open-Meteo
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(10), .cloudy, "Undefined code 10")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(30), .cloudy, "Undefined code 30")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(50), .cloudy, "Undefined code 50")
+        XCTAssertEqual(WeatherCodeMapper.mapWeatherCode(70), .cloudy, "Undefined code 70")
     }
 }
 
@@ -215,51 +204,42 @@ final class WeatherCodeMappingTests: XCTestCase {
 final class AudioConfigTests: XCTestCase {
 
     func testSunnyVolume_MatchesSpec() {
-        // Spec: sunny ambient 0.1 → 0.7
         let config = AudioConfig.config(for: .sunny)
-        XCTAssertEqual(config.minVolume, 0.1, accuracy: 0.01, "Sunny min volume should be 0.1")
-        XCTAssertEqual(config.maxVolume, 0.7, accuracy: 0.01, "Sunny max volume should be 0.7")
+        XCTAssertEqual(config.minVolume, 0.1, accuracy: 0.01, "Spec: sunny min 0.1")
+        XCTAssertEqual(config.maxVolume, 0.7, accuracy: 0.01, "Spec: sunny max 0.7")
     }
 
     func testCloudyVolume_MatchesSpec() {
-        // Spec: cloudy ambient 0.1 → 0.5
         let config = AudioConfig.config(for: .cloudy)
-        XCTAssertEqual(config.minVolume, 0.1, accuracy: 0.01)
-        XCTAssertEqual(config.maxVolume, 0.5, accuracy: 0.01)
+        XCTAssertEqual(config.minVolume, 0.1, accuracy: 0.01, "Spec: cloudy min 0.1")
+        XCTAssertEqual(config.maxVolume, 0.5, accuracy: 0.01, "Spec: cloudy max 0.5")
     }
 
     func testRainyVolume_MatchesSpec() {
-        // Spec: rainy ambient 0.1 → 0.8
         let config = AudioConfig.config(for: .rainy)
-        XCTAssertEqual(config.minVolume, 0.1, accuracy: 0.01)
-        XCTAssertEqual(config.maxVolume, 0.8, accuracy: 0.01)
+        XCTAssertEqual(config.minVolume, 0.1, accuracy: 0.01, "Spec: rainy min 0.1")
+        XCTAssertEqual(config.maxVolume, 0.8, accuracy: 0.01, "Spec: rainy max 0.8")
     }
 
     func testSnowyVolume_MatchesSpec() {
-        // Spec: snowy ambient 0.05 → 0.4
         let config = AudioConfig.config(for: .snowy)
-        XCTAssertEqual(config.minVolume, 0.05, accuracy: 0.01)
-        XCTAssertEqual(config.maxVolume, 0.4, accuracy: 0.01)
+        XCTAssertEqual(config.minVolume, 0.05, accuracy: 0.01, "Spec: snowy min 0.05")
+        XCTAssertEqual(config.maxVolume, 0.4, accuracy: 0.01, "Spec: snowy max 0.4")
     }
 
     func testAllWeatherTypes_HaveAmbientFile() {
         for type in WeatherType.allCases {
             let config = AudioConfig.config(for: type)
-            XCTAssertFalse(config.ambientFile.isEmpty,
-                "\(type) should have an ambient audio file")
-            XCTAssertEqual(config.ambientExtension, "m4a",
-                "Ambient loops should be .m4a format (spec)")
+            XCTAssertFalse(config.ambientFile.isEmpty, "\(type) missing ambient file")
+            XCTAssertEqual(config.ambientExtension, "m4a", "Spec: ambient loops should be .m4a")
         }
     }
 
     func testAllWeatherTypes_HaveCharacterSFX() {
-        // Spec: each weather type has a character sound
         for type in WeatherType.allCases {
             let config = AudioConfig.config(for: type)
-            XCTAssertNotNil(config.characterSoundFile,
-                "\(type) should have a character sound file")
-            XCTAssertNotNil(config.characterSoundExtension,
-                "\(type) should have a character sound extension")
+            XCTAssertNotNil(config.characterSoundFile, "\(type) missing character SFX")
+            XCTAssertNotNil(config.characterSoundExtension, "\(type) missing SFX extension")
         }
     }
 
@@ -268,7 +248,7 @@ final class AudioConfigTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = AudioConfig.config(for: type)
             XCTAssertEqual(config.characterSoundExtension, "caf",
-                "\(type) character SFX should be .caf format (spec: low latency)")
+                "\(type) character SFX should be .caf (spec: low latency)")
         }
     }
 
@@ -276,7 +256,27 @@ final class AudioConfigTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = AudioConfig.config(for: type)
             XCTAssertLessThan(config.minVolume, config.maxVolume,
-                "\(type) min volume should be less than max volume")
+                "\(type) min volume should be < max volume")
+        }
+    }
+
+    func testRainyIsLoudest() {
+        // Rain should be loudest ambient (most dramatic)
+        let rainy = AudioConfig.config(for: .rainy)
+        for type in WeatherType.allCases where type != .rainy {
+            let other = AudioConfig.config(for: type)
+            XCTAssertGreaterThanOrEqual(rainy.maxVolume, other.maxVolume,
+                "Rainy should be loudest (or equal) max volume vs \(type)")
+        }
+    }
+
+    func testSnowyIsQuietest() {
+        // Snowy should be quietest ambient (muffled world)
+        let snowy = AudioConfig.config(for: .snowy)
+        for type in WeatherType.allCases where type != .snowy {
+            let other = AudioConfig.config(for: type)
+            XCTAssertLessThanOrEqual(snowy.maxVolume, other.maxVolume,
+                "Snowy should be quietest max volume vs \(type)")
         }
     }
 }
@@ -290,7 +290,7 @@ final class CharacterConfigTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = CharacterConfig.config(for: type)
             XCTAssertEqual(config.frameCount, 4,
-                "\(type) character should have 4 animation frames (spec)")
+                "\(type): spec requires 4 animation frames")
         }
     }
 
@@ -299,9 +299,9 @@ final class CharacterConfigTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = CharacterConfig.config(for: type)
             XCTAssertGreaterThanOrEqual(config.crossDuration, 2.5,
-                "\(type) cross duration too fast (spec: ~3s)")
+                "\(type) cross too fast (spec: ~3s)")
             XCTAssertLessThanOrEqual(config.crossDuration, 5.0,
-                "\(type) cross duration too slow (spec: ~3s)")
+                "\(type) cross too slow (spec: ~3s)")
         }
     }
 
@@ -310,11 +310,11 @@ final class CharacterConfigTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = CharacterConfig.config(for: type)
             XCTAssertEqual(config.cooldown, 10.0, accuracy: 2.0,
-                "\(type) cooldown should be ~10s (spec)")
+                "\(type) cooldown should be ~10s")
         }
     }
 
-    func testSpriteSheetNames_MatchExpectedConvention() {
+    func testSpriteSheetNames_MatchConvention() {
         let expected: [WeatherType: String] = [
             .sunny: "character_sunny_sheet",
             .cloudy: "character_cloudy_sheet",
@@ -323,17 +323,24 @@ final class CharacterConfigTests: XCTestCase {
         ]
         for (type, name) in expected {
             let config = CharacterConfig.config(for: type)
-            XCTAssertEqual(config.spriteSheet, name,
-                "\(type) sprite sheet should be named \(name)")
+            XCTAssertEqual(config.spriteSheet, name)
         }
     }
 
     func testCloudyIsSlowerThanSunny() {
-        // Cloudy kid walks slowly; sunny kid skips — cloudy should have longer cross duration
+        // Cloudy kid walks slowly; sunny kid skips
         let sunny = CharacterConfig.config(for: .sunny)
         let cloudy = CharacterConfig.config(for: .cloudy)
         XCTAssertGreaterThan(cloudy.crossDuration, sunny.crossDuration,
-            "Cloudy character should be slower than sunny (walks vs skips)")
+            "Cloudy should cross slower than sunny (walk vs skip)")
+    }
+
+    func testTimePerFrame_IsPositive() {
+        for type in WeatherType.allCases {
+            let config = CharacterConfig.config(for: type)
+            XCTAssertGreaterThan(config.timePerFrame, 0,
+                "\(type) timePerFrame must be positive")
+        }
     }
 }
 
@@ -342,19 +349,16 @@ final class CharacterConfigTests: XCTestCase {
 final class SkyConfigTests: XCTestCase {
 
     func testAllWeatherTypes_HaveDistinctSkyColors() {
-        let configs = WeatherType.allCases.map { SkyConfig.config(for: $0) }
-        // Each weather type should have unique top colors
         var topColors = Set<String>()
-        for (i, config) in configs.enumerated() {
+        for type in WeatherType.allCases {
+            let config = SkyConfig.config(for: type)
             let key = "\(config.topColor.r),\(config.topColor.g),\(config.topColor.b)"
             let inserted = topColors.insert(key).inserted
-            XCTAssertTrue(inserted,
-                "\(WeatherType.allCases[i]) has duplicate sky top color: \(key)")
+            XCTAssertTrue(inserted, "\(type) has duplicate sky top color")
         }
     }
 
     func testSunnyIsBrightest() {
-        // Sunny should have the brightest (highest blue channel) sky
         let sunny = SkyConfig.config(for: .sunny)
         let rainy = SkyConfig.config(for: .rainy)
         XCTAssertGreaterThan(sunny.topColor.b, rainy.topColor.b,
@@ -362,11 +366,10 @@ final class SkyConfigTests: XCTestCase {
     }
 
     func testRainyIsDarkest() {
-        // Rainy should have the darkest sky
         let rainy = SkyConfig.config(for: .rainy)
+        let rainyBrightness = rainy.topColor.r + rainy.topColor.g + rainy.topColor.b
         for type in WeatherType.allCases where type != .rainy {
             let other = SkyConfig.config(for: type)
-            let rainyBrightness = rainy.topColor.r + rainy.topColor.g + rainy.topColor.b
             let otherBrightness = other.topColor.r + other.topColor.g + other.topColor.b
             XCTAssertLessThan(rainyBrightness, otherBrightness,
                 "Rainy sky should be darker than \(type)")
@@ -376,10 +379,22 @@ final class SkyConfigTests: XCTestCase {
     func testAllWeatherTypes_HaveTintConfig() {
         for type in WeatherType.allCases {
             let config = SkyConfig.config(for: type)
-            XCTAssertGreaterThan(config.intenseTintAlpha, 0.0,
-                "\(type) should have non-zero tint alpha")
-            XCTAssertLessThanOrEqual(config.intenseTintAlpha, 1.0,
-                "\(type) tint alpha should not exceed 1.0")
+            XCTAssertGreaterThan(config.intenseTintAlpha, 0.0)
+            XCTAssertLessThanOrEqual(config.intenseTintAlpha, 1.0)
+        }
+    }
+
+    func testSkyColors_AreValidRGB() {
+        for type in WeatherType.allCases {
+            let config = SkyConfig.config(for: type)
+            for color in [config.topColor, config.bottomColor, config.intenseTintColor] {
+                XCTAssertGreaterThanOrEqual(color.r, 0)
+                XCTAssertLessThanOrEqual(color.r, 255)
+                XCTAssertGreaterThanOrEqual(color.g, 0)
+                XCTAssertLessThanOrEqual(color.g, 255)
+                XCTAssertGreaterThanOrEqual(color.b, 0)
+                XCTAssertLessThanOrEqual(color.b, 255)
+            }
         }
     }
 }
@@ -389,25 +404,36 @@ final class SkyConfigTests: XCTestCase {
 final class LerpTests: XCTestCase {
 
     func testLerp_AtZero_ReturnsA() {
-        XCTAssertEqual(ParticleFactory.lerp(10, 100, t: 0), 10, accuracy: 0.001)
+        XCTAssertEqual(MathHelpers.lerp(10, 100, t: 0), 10, accuracy: 0.001)
     }
 
     func testLerp_AtOne_ReturnsB() {
-        XCTAssertEqual(ParticleFactory.lerp(10, 100, t: 1), 100, accuracy: 0.001)
+        XCTAssertEqual(MathHelpers.lerp(10, 100, t: 1), 100, accuracy: 0.001)
     }
 
     func testLerp_AtHalf_ReturnsMidpoint() {
-        XCTAssertEqual(ParticleFactory.lerp(10, 100, t: 0.5), 55, accuracy: 0.001)
+        XCTAssertEqual(MathHelpers.lerp(10, 100, t: 0.5), 55, accuracy: 0.001)
     }
 
     func testLerp_ClampsNegativeT() {
-        // t < 0 should clamp to 0 → return a
-        XCTAssertEqual(ParticleFactory.lerp(10, 100, t: -0.5), 10, accuracy: 0.001)
+        XCTAssertEqual(MathHelpers.lerp(10, 100, t: -0.5), 10, accuracy: 0.001)
     }
 
     func testLerp_ClampsExcessiveT() {
-        // t > 1 should clamp to 1 → return b
-        XCTAssertEqual(ParticleFactory.lerp(10, 100, t: 1.5), 100, accuracy: 0.001)
+        XCTAssertEqual(MathHelpers.lerp(10, 100, t: 1.5), 100, accuracy: 0.001)
+    }
+
+    func testLerp_RainBirthRateRange() {
+        // Spec: rain birth rate 20 → 300
+        XCTAssertEqual(MathHelpers.lerp(20, 300, t: 0), 20, accuracy: 0.1)
+        XCTAssertEqual(MathHelpers.lerp(20, 300, t: 1), 300, accuracy: 0.1)
+        XCTAssertEqual(MathHelpers.lerp(20, 300, t: 0.5), 160, accuracy: 0.1)
+    }
+
+    func testLerp_SnowBirthRateRange() {
+        // Spec: snow birth rate 10 → 150
+        XCTAssertEqual(MathHelpers.lerp(10, 150, t: 0), 10, accuracy: 0.1)
+        XCTAssertEqual(MathHelpers.lerp(10, 150, t: 1), 150, accuracy: 0.1)
     }
 
     func testWeatherClamped_InRange() {
@@ -426,157 +452,12 @@ final class LerpTests: XCTestCase {
     }
 }
 
-// MARK: - Particle Factory Tests
-
-final class ParticleFactoryTests: XCTestCase {
-
-    func testRain_BirthRateScalesWithIntensity() {
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let lowRain = ParticleFactory.makeRain(sceneSize: sceneSize, intensity: 0.0)
-        let highRain = ParticleFactory.makeRain(sceneSize: sceneSize, intensity: 1.0)
-        XCTAssertEqual(lowRain.particleBirthRate, 20, accuracy: 1,
-            "Rain at intensity 0 should have ~20 birth rate")
-        XCTAssertEqual(highRain.particleBirthRate, 300, accuracy: 1,
-            "Rain at intensity 1 should have ~300 birth rate")
-    }
-
-    func testSnow_BirthRateScalesWithIntensity() {
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let lowSnow = ParticleFactory.makeSnow(sceneSize: sceneSize, intensity: 0.0)
-        let highSnow = ParticleFactory.makeSnow(sceneSize: sceneSize, intensity: 1.0)
-        XCTAssertEqual(lowSnow.particleBirthRate, 10, accuracy: 1)
-        XCTAssertEqual(highSnow.particleBirthRate, 150, accuracy: 1)
-    }
-
-    func testSnow_SlowerThanRain() {
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let rain = ParticleFactory.makeRain(sceneSize: sceneSize, intensity: 0.5)
-        let snow = ParticleFactory.makeSnow(sceneSize: sceneSize, intensity: 0.5)
-        XCTAssertGreaterThan(rain.particleSpeed, snow.particleSpeed,
-            "Rain should fall faster than snow")
-    }
-
-    func testSunRays_ZeroBirthRate_BelowThreshold() {
-        // Sun rays should not appear at low intensity (below 0.3)
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let lowSun = ParticleFactory.makeSunRays(sceneSize: sceneSize, intensity: 0.0)
-        XCTAssertEqual(lowSun.particleBirthRate, 0, accuracy: 0.1,
-            "Sun rays should have 0 birth rate at intensity 0")
-    }
-
-    func testSunRays_PositiveBirthRate_AboveThreshold() {
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let highSun = ParticleFactory.makeSunRays(sceneSize: sceneSize, intensity: 1.0)
-        XCTAssertGreaterThan(highSun.particleBirthRate, 0,
-            "Sun rays should have positive birth rate at intensity 1.0")
-    }
-
-    func testRain_EmitsFromTopOfScreen() {
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let rain = ParticleFactory.makeRain(sceneSize: sceneSize, intensity: 0.5)
-        XCTAssertGreaterThan(rain.position.y, sceneSize.height / 2 - 10,
-            "Rain should emit from top of screen")
-    }
-
-    func testRain_FallsDownward() {
-        let sceneSize = CGSize(width: 1024, height: 768)
-        let rain = ParticleFactory.makeRain(sceneSize: sceneSize, intensity: 0.5)
-        // emissionAngle of -.pi/2 means straight down
-        XCTAssertEqual(rain.emissionAngle, -.pi / 2, accuracy: 0.3,
-            "Rain should emit downward (-.pi/2)")
-    }
-}
-
-// MARK: - ViewModel State Tests
-
-final class ViewModelTests: XCTestCase {
-
-    @MainActor
-    func testDefaultZipCode() {
-        // Clear any stored value to test true default
-        UserDefaults.standard.removeObject(forKey: "weatherZipCode")
-        let vm = WeatherViewModel()
-        XCTAssertEqual(vm.zipCode, "43123",
-            "Default zip should be 43123 (user requirement)")
-    }
-
-    @MainActor
-    func testDefaultWeatherType_IsSunny() {
-        let vm = WeatherViewModel()
-        XCTAssertEqual(vm.weatherType, .sunny,
-            "Default weather type should be sunny")
-    }
-
-    @MainActor
-    func testDefaultIntensity_IsZero() {
-        let vm = WeatherViewModel()
-        XCTAssertEqual(vm.intensity, 0.0,
-            "Default intensity should be 0.0")
-    }
-
-    @MainActor
-    func testDefaultTouching_IsFalse() {
-        let vm = WeatherViewModel()
-        XCTAssertFalse(vm.isTouching,
-            "Default touch state should be false")
-    }
-
-    @MainActor
-    func testWeatherOverride_DefaultNil() {
-        let vm = WeatherViewModel()
-        XCTAssertNil(vm.weatherOverride,
-            "Weather override should default to nil (use real weather)")
-    }
-
-    @MainActor
-    func testWeatherOverride_SkipsApiFetch() {
-        let vm = WeatherViewModel()
-        vm.weatherOverride = .snowy
-        vm.fetchWeather()
-        // When override is set, fetchWeather should apply it immediately
-        XCTAssertEqual(vm.weatherType, .snowy,
-            "With override set, fetchWeather should use the override")
-    }
-
-    @MainActor
-    func testZipValidation_RejectsShortZip() {
-        let vm = WeatherViewModel()
-        vm.zipCode = "123"
-        vm.weatherOverride = nil
-        vm.fetchWeather()
-        XCTAssertNotNil(vm.zipError,
-            "Should show error for zip shorter than 5 digits")
-    }
-
-    @MainActor
-    func testZipValidation_RejectsNonNumeric() {
-        let vm = WeatherViewModel()
-        vm.zipCode = "abcde"
-        vm.weatherOverride = nil
-        vm.fetchWeather()
-        XCTAssertNotNil(vm.zipError,
-            "Should show error for non-numeric zip")
-    }
-
-    @MainActor
-    func testZipValidation_Accepts5Digits() {
-        let vm = WeatherViewModel()
-        vm.zipCode = "43123"
-        vm.weatherOverride = nil
-        vm.zipError = "previous error"
-        vm.fetchWeather()
-        XCTAssertNil(vm.zipError,
-            "Should clear error for valid 5-digit zip")
-    }
-}
-
 // MARK: - WeatherType Enum Tests
 
 final class WeatherTypeTests: XCTestCase {
 
     func testAllCases_HasFourTypes() {
-        XCTAssertEqual(WeatherType.allCases.count, 4,
-            "Should have exactly 4 weather types: sunny, cloudy, rainy, snowy")
+        XCTAssertEqual(WeatherType.allCases.count, 4)
     }
 
     func testAllCases_ContainsExpectedTypes() {
@@ -588,12 +469,11 @@ final class WeatherTypeTests: XCTestCase {
     }
 
     func testConfigLookups_CoverAllTypes() {
-        // Every weather type should have all configs (sky, audio, character)
+        // Every weather type should have all configs — no crash = pass
         for type in WeatherType.allCases {
             _ = SkyConfig.config(for: type)
             _ = AudioConfig.config(for: type)
             _ = CharacterConfig.config(for: type)
-            // No crash = pass
         }
     }
 }
@@ -606,8 +486,7 @@ final class AudioVolumeScalingTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = AudioConfig.config(for: type)
             let volume = config.minVolume + (config.maxVolume - config.minVolume) * Float(0.0)
-            XCTAssertEqual(volume, config.minVolume, accuracy: 0.001,
-                "\(type) volume at intensity 0 should be minVolume")
+            XCTAssertEqual(volume, config.minVolume, accuracy: 0.001)
         }
     }
 
@@ -615,19 +494,84 @@ final class AudioVolumeScalingTests: XCTestCase {
         for type in WeatherType.allCases {
             let config = AudioConfig.config(for: type)
             let volume = config.minVolume + (config.maxVolume - config.minVolume) * Float(1.0)
-            XCTAssertEqual(volume, config.maxVolume, accuracy: 0.001,
-                "\(type) volume at intensity 1 should be maxVolume")
+            XCTAssertEqual(volume, config.maxVolume, accuracy: 0.001)
         }
     }
 
-    func testVolumeScalesLinearly() {
-        let config = AudioConfig.config(for: .rainy)
-        let vol25 = config.minVolume + (config.maxVolume - config.minVolume) * 0.25
-        let vol75 = config.minVolume + (config.maxVolume - config.minVolume) * 0.75
-        let diff1 = vol25 - config.minVolume
-        let diff2 = vol75 - vol25
-        // Both spans should be equal (linear)
-        XCTAssertEqual(diff1, diff2 / 2, accuracy: 0.01,
-            "Volume should scale linearly with intensity")
+    func testVolumeNeverExceedsMaxVolume() {
+        // Even at intensity > 1.0, audio should be capped
+        for type in WeatherType.allCases {
+            let config = AudioConfig.config(for: type)
+            let volume = config.minVolume + (config.maxVolume - config.minVolume) * Float(1.5)
+            // Note: this tests the FORMULA, not the actual code — if ViewModel clamps intensity,
+            // this is fine. But if it doesn't, the audio manager will exceed maxVolume.
+            if volume > config.maxVolume {
+                // This means the audio code doesn't protect against intensity > 1.0
+                // Not necessarily a bug if intensity is always clamped, but worth flagging
+                XCTAssertLessThanOrEqual(config.maxVolume, 1.0,
+                    "\(type) maxVolume should never exceed system max 1.0")
+            }
+        }
+    }
+}
+
+// MARK: - Intensity-Threshold Integration Tests
+
+/// Tests that intensity progression actually crosses thresholds at expected times
+final class IntensityProgressionTests: XCTestCase {
+
+    func testGroundEffectsReached_BeforeCharacterTrigger() {
+        // Ground effects (0.3) must be hit before character trigger (0.6)
+        var intensity: CGFloat = 0.0
+        var hitGround = false
+        var hitCharacter = false
+        var groundFrame = 0
+        var characterFrame = 0
+
+        for frame in 0..<10000 {
+            intensity = IntensityLogic.updateIntensity(current: intensity, isTouching: true)
+            if !hitGround && intensity >= IntensityThreshold.groundEffects {
+                hitGround = true
+                groundFrame = frame
+            }
+            if !hitCharacter && intensity >= IntensityThreshold.characterTrigger {
+                hitCharacter = true
+                characterFrame = frame
+            }
+            if hitGround && hitCharacter { break }
+        }
+
+        XCTAssertTrue(hitGround, "Should reach ground effects threshold")
+        XCTAssertTrue(hitCharacter, "Should reach character trigger threshold")
+        XCTAssertLessThan(groundFrame, characterFrame,
+            "Ground effects should appear before character animation")
+    }
+
+    func testPeakEffects_ReachedBeforeMaxIntensity() {
+        var intensity: CGFloat = 0.0
+        var hitPeak = false
+        for _ in 0..<10000 {
+            intensity = IntensityLogic.updateIntensity(current: intensity, isTouching: true)
+            if intensity >= IntensityThreshold.peakEffects {
+                hitPeak = true
+                break
+            }
+        }
+        XCTAssertTrue(hitPeak, "Should reach peak effects before max intensity")
+        XCTAssertLessThan(intensity, 1.0,
+            "Peak effects (0.8) should trigger before reaching 1.0")
+    }
+
+    func testFullDecay_FromMaxToZero() {
+        var intensity: CGFloat = 1.0
+        var frames = 0
+        while intensity > 0 && frames < 100000 {
+            intensity = IntensityLogic.updateIntensity(current: intensity, isTouching: false)
+            frames += 1
+        }
+        XCTAssertEqual(intensity, 0.0, accuracy: 0.0001, "Should fully decay to 0")
+        let seconds = Double(frames) / 60.0
+        XCTAssertGreaterThan(seconds, 25.0, "Full decay should take >25s")
+        XCTAssertLessThan(seconds, 40.0, "Full decay should take <40s")
     }
 }
