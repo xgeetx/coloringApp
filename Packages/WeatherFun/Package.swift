@@ -9,6 +9,10 @@ let package = Package(
         .target(
             name: "WeatherFun",
             resources: [.process("Resources")]
+        ),
+        .testTarget(
+            name: "WeatherFunTests",
+            dependencies: ["WeatherFun"]
         )
     ]
 )
