@@ -41,19 +41,7 @@ class CharacterAnimator {
         // Try sprite sheet first, fall back to emoji
         if let textures = loadSpriteSheet(named: config.spriteSheet, frameCount: config.frameCount), !textures.isEmpty {
             sprite = SKSpriteNode(texture: textures.first)
-            // Animate: cycle through first 2 frames (run), then show jump + splash at the end
-            if textures.count >= 4 {
-                // Run cycle: alternate frames 0-1 for most of the journey
-                let runCycle = SKAction.animate(with: [textures[0], textures[1]], timePerFrame: config.timePerFrame)
-                let runLoop = SKAction.repeat(runCycle, count: 6)
-                // Jump frame + splash frame at the end
-                let jumpFrame = SKAction.animate(with: [textures[2]], timePerFrame: 0.3)
-                let splashFrame = SKAction.animate(with: [textures[3]], timePerFrame: 0.5)
-                sprite.run(SKAction.sequence([runLoop, jumpFrame, splashFrame]))
-            } else {
-                let animate = SKAction.animate(with: textures, timePerFrame: config.timePerFrame)
-                sprite.run(SKAction.repeatForever(animate))
-            }
+            applyFrameAnimation(sprite: sprite, textures: textures, weather: weather, config: config)
         } else {
             sprite = makePlaceholderSprite(for: weather)
         }
@@ -71,46 +59,123 @@ class CharacterAnimator {
         sprite.zPosition = 5
         layer.addChild(sprite)
 
-        if weather == .rainy {
-            // Run most of the way, then jump + land
+        let cleanup = SKAction.sequence([
+            SKAction.removeFromParent(),
+            SKAction.run { [weak self] in self?.isAnimating = false }
+        ])
+
+        switch weather {
+        case .rainy:
+            // Run most of the way, then jump over a puddle
             let runDist = endX - startX
-            let jumpX = startX + runDist * 0.7  // jump at 70% across
+            let jumpX = startX + runDist * 0.7
 
             let runToJump = SKAction.moveTo(x: jumpX, duration: config.crossDuration * 0.7)
             runToJump.timingMode = .easeIn
 
-            // Jump arc
             let jumpUp = SKAction.moveBy(x: 40, y: 60, duration: 0.25)
             jumpUp.timingMode = .easeOut
             let jumpDown = SKAction.moveBy(x: 40, y: -60, duration: 0.2)
             jumpDown.timingMode = .easeIn
 
-            // Continue running to exit
             let runOff = SKAction.moveTo(x: endX, duration: config.crossDuration * 0.3)
             runOff.timingMode = .easeOut
 
-            sprite.run(SKAction.sequence([
-                runToJump,
-                jumpUp,
-                jumpDown,
-                runOff,
-                SKAction.removeFromParent(),
-                SKAction.run { [weak self] in
-                    self?.isAnimating = false
-                }
-            ]))
-        } else {
-            // Simple cross for other weather types
-            let move = SKAction.moveTo(x: endX, duration: config.crossDuration)
-            move.timingMode = .easeInEaseOut
+            sprite.run(SKAction.sequence([runToJump, jumpUp, jumpDown, runOff, cleanup]))
 
-            sprite.run(SKAction.sequence([
-                move,
-                SKAction.removeFromParent(),
-                SKAction.run { [weak self] in
-                    self?.isAnimating = false
-                }
-            ]))
+        case .sunny:
+            // Skip across with a little hop at the end
+            let runDist = endX - startX
+            let twirlX = startX + runDist * 0.65
+
+            let skipTo = SKAction.moveTo(x: twirlX, duration: config.crossDuration * 0.65)
+            skipTo.timingMode = .easeIn
+
+            // Little twirl-jump
+            let hopUp = SKAction.moveBy(x: 20, y: 40, duration: 0.2)
+            hopUp.timingMode = .easeOut
+            let hopDown = SKAction.moveBy(x: 20, y: -40, duration: 0.2)
+            hopDown.timingMode = .easeIn
+
+            let skipOff = SKAction.moveTo(x: endX, duration: config.crossDuration * 0.35)
+            skipOff.timingMode = .easeOut
+
+            sprite.run(SKAction.sequence([skipTo, hopUp, hopDown, skipOff, cleanup]))
+
+        case .cloudy:
+            // Walk across, slow down in middle (looking up), then lean into wind
+            let runDist = endX - startX
+            let lookX = startX + runDist * 0.5
+            let windX = startX + runDist * 0.7
+
+            let walkToLook = SKAction.moveTo(x: lookX, duration: config.crossDuration * 0.5)
+            walkToLook.timingMode = .easeIn
+
+            // Pause briefly looking up
+            let pause = SKAction.moveTo(x: windX, duration: config.crossDuration * 0.3)
+            pause.timingMode = .linear
+
+            let walkOff = SKAction.moveTo(x: endX, duration: config.crossDuration * 0.2)
+            walkOff.timingMode = .easeOut
+
+            sprite.run(SKAction.sequence([walkToLook, pause, walkOff, cleanup]))
+
+        case .snowy:
+            // Walk, pause to scoop snow, then continue (throw while walking off)
+            let runDist = endX - startX
+            let scoopX = startX + runDist * 0.55
+
+            let walkToScoop = SKAction.moveTo(x: scoopX, duration: config.crossDuration * 0.55)
+            walkToScoop.timingMode = .easeIn
+
+            // Brief pause while scooping
+            let scoop = SKAction.wait(forDuration: 0.4)
+
+            let walkOff = SKAction.moveTo(x: endX, duration: config.crossDuration * 0.45)
+            walkOff.timingMode = .easeOut
+
+            sprite.run(SKAction.sequence([walkToScoop, scoop, walkOff, cleanup]))
+        }
+    }
+
+    // MARK: - Frame Animation
+
+    private func applyFrameAnimation(sprite: SKSpriteNode, textures: [SKTexture], weather: WeatherType, config: CharacterConfig) {
+        guard textures.count >= 4 else {
+            let animate = SKAction.animate(with: textures, timePerFrame: config.timePerFrame)
+            sprite.run(SKAction.repeatForever(animate))
+            return
+        }
+
+        // All weather types: run cycle (frames 0-1) for most of the journey,
+        // then action frames (2-3) near the end
+        let runCycle = SKAction.animate(with: [textures[0], textures[1]], timePerFrame: config.timePerFrame)
+        let runLoop = SKAction.repeat(runCycle, count: 6)
+
+        switch weather {
+        case .rainy:
+            // Run → jump → splash
+            let jumpFrame = SKAction.animate(with: [textures[2]], timePerFrame: 0.3)
+            let splashFrame = SKAction.animate(with: [textures[3]], timePerFrame: 0.5)
+            sprite.run(SKAction.sequence([runLoop, jumpFrame, splashFrame]))
+
+        case .sunny:
+            // Skip → twirl → jump for joy
+            let twirlFrame = SKAction.animate(with: [textures[2]], timePerFrame: 0.4)
+            let jumpFrame = SKAction.animate(with: [textures[3]], timePerFrame: 0.4)
+            sprite.run(SKAction.sequence([runLoop, twirlFrame, jumpFrame]))
+
+        case .cloudy:
+            // Walk → look up at sky → lean into wind
+            let lookFrame = SKAction.animate(with: [textures[2]], timePerFrame: 0.5)
+            let windFrame = SKAction.animate(with: [textures[3]], timePerFrame: 0.6)
+            sprite.run(SKAction.sequence([runLoop, lookFrame, windFrame]))
+
+        case .snowy:
+            // Walk → scoop snow → throw snowball
+            let scoopFrame = SKAction.animate(with: [textures[2]], timePerFrame: 0.4)
+            let throwFrame = SKAction.animate(with: [textures[3]], timePerFrame: 0.5)
+            sprite.run(SKAction.sequence([runLoop, scoopFrame, throwFrame]))
         }
     }
 
