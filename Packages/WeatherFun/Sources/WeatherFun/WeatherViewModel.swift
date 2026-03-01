@@ -5,10 +5,12 @@ import Combine
 
 @MainActor
 final class WeatherViewModel: ObservableObject {
-    // MARK: - Published State
-    @Published var weatherType: WeatherType = .sunny
-    @Published var intensity: CGFloat = 0.0
-    @Published var isTouching: Bool = false
+    // MARK: - Scene State (not @Published — read by SpriteKit scene directly)
+    var weatherType: WeatherType = .sunny
+    var intensity: CGFloat = 0.0
+    var isTouching: Bool = false
+
+    // MARK: - Published State (only for SwiftUI settings sheet)
     @Published var zipCode: String {
         didSet { UserDefaults.standard.set(zipCode, forKey: "weatherZipCode") }
     }

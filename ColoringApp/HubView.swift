@@ -27,45 +27,31 @@ struct HubView: View {
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 32) {
-                // Title
-                VStack(spacing: 8) {
-                    Text("🌟")
-                        .font(.system(size: 48))
-                    Text(hubTitle)
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.red, .orange, .yellow, .green, .blue, .purple],
-                                startPoint: .leading,
-                                endPoint: .trailing
+            ScrollView {
+                VStack(spacing: 20) {
+                    // Title
+                    VStack(spacing: 8) {
+                        Text("🌟")
+                            .font(.system(size: 48))
+                        Text(hubTitle)
+                            .font(.system(size: 44, weight: .bold, design: .rounded))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.red, .orange, .yellow, .green, .blue, .purple],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
                             )
-                        )
-                        .onTapGesture(count: 3) {
-                            pendingTitle = hubTitle == "Triple Tap here to change Name" ? "" : hubTitle
-                            showRenameAlert = true
-                        }
-                }
-                .padding(.top, 36)
-
-                // App tiles — first 4 in 2x2 grid
-                LazyVGrid(columns: columns, spacing: 24) {
-                    ForEach(Array(AppRegistry.apps.prefix(4))) { app in
-                        AppTileView(app: app) {
-                            if app.isAvailable {
-                                activeApp = app
-                            } else {
-                                requestingApp = app
+                            .onTapGesture(count: 3) {
+                                pendingTitle = hubTitle == "Triple Tap here to change Name" ? "" : hubTitle
+                                showRenameAlert = true
                             }
-                        }
                     }
-                }
-                .padding(.horizontal, 48)
+                    .padding(.top, 24)
 
-                // Overflow row — centered below grid
-                if AppRegistry.apps.count > 4 {
-                    HStack(spacing: 24) {
-                        ForEach(Array(AppRegistry.apps.dropFirst(4))) { app in
+                    // App tiles — first 4 in 2x2 grid
+                    LazyVGrid(columns: columns, spacing: 20) {
+                        ForEach(Array(AppRegistry.apps.prefix(4))) { app in
                             AppTileView(app: app) {
                                 if app.isAvailable {
                                     activeApp = app
@@ -73,13 +59,28 @@ struct HubView: View {
                                     requestingApp = app
                                 }
                             }
-                            .frame(maxWidth: UIScreen.main.bounds.width / 2 - 60)
                         }
                     }
                     .padding(.horizontal, 48)
-                }
 
-                Spacer()
+                    // Overflow row — centered below grid
+                    if AppRegistry.apps.count > 4 {
+                        HStack(spacing: 24) {
+                            ForEach(Array(AppRegistry.apps.dropFirst(4))) { app in
+                                AppTileView(app: app) {
+                                    if app.isAvailable {
+                                        activeApp = app
+                                    } else {
+                                        requestingApp = app
+                                    }
+                                }
+                                .frame(maxWidth: UIScreen.main.bounds.width / 2 - 60)
+                            }
+                        }
+                        .padding(.horizontal, 48)
+                    }
+                }
+                .padding(.bottom, 24)
             }
         }
         .fullScreenCover(item: $activeApp) { app in
