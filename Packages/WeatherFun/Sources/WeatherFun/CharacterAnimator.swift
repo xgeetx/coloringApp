@@ -36,33 +36,82 @@ class CharacterAnimator {
         lastTriggerTime = currentTime
 
         let config = CharacterConfig.config(for: weather)
+        let sprite: SKSpriteNode
 
-        // Emoji character (sprite sheet assets need replacement)
-        let sprite = makePlaceholderSprite(for: weather)
+        // Try sprite sheet first, fall back to emoji
+        if let textures = loadSpriteSheet(named: config.spriteSheet, frameCount: config.frameCount), !textures.isEmpty {
+            sprite = SKSpriteNode(texture: textures.first)
+            // Animate: cycle through first 2 frames (run), then show jump + splash at the end
+            if textures.count >= 4 {
+                // Run cycle: alternate frames 0-1 for most of the journey
+                let runCycle = SKAction.animate(with: [textures[0], textures[1]], timePerFrame: config.timePerFrame)
+                let runLoop = SKAction.repeat(runCycle, count: 6)
+                // Jump frame + splash frame at the end
+                let jumpFrame = SKAction.animate(with: [textures[2]], timePerFrame: 0.3)
+                let splashFrame = SKAction.animate(with: [textures[3]], timePerFrame: 0.5)
+                sprite.run(SKAction.sequence([runLoop, jumpFrame, splashFrame]))
+            } else {
+                let animate = SKAction.animate(with: textures, timePerFrame: config.timePerFrame)
+                sprite.run(SKAction.repeatForever(animate))
+            }
+        } else {
+            sprite = makePlaceholderSprite(for: weather)
+        }
 
         // Play character sound effect
         audioManager?.playCharacterSound(for: weather)
 
         // Start offscreen left, move to offscreen right
-        let startX = -sceneSize.width / 2 - 80
-        let endX = sceneSize.width / 2 + 80
+        let startX = -sceneSize.width / 2 - 100
+        let endX = sceneSize.width / 2 + 100
         let groundY = -sceneSize.height * 0.3
 
         sprite.position = CGPoint(x: startX, y: groundY)
-        sprite.setScale(0.5)
+        sprite.setScale(0.3)
         sprite.zPosition = 5
         layer.addChild(sprite)
 
-        let move = SKAction.moveTo(x: endX, duration: config.crossDuration)
-        move.timingMode = .easeInEaseOut
+        if weather == .rainy {
+            // Run most of the way, then jump + land
+            let runDist = endX - startX
+            let jumpX = startX + runDist * 0.7  // jump at 70% across
 
-        sprite.run(SKAction.sequence([
-            move,
-            SKAction.removeFromParent(),
-            SKAction.run { [weak self] in
-                self?.isAnimating = false
-            }
-        ]))
+            let runToJump = SKAction.moveTo(x: jumpX, duration: config.crossDuration * 0.7)
+            runToJump.timingMode = .easeIn
+
+            // Jump arc
+            let jumpUp = SKAction.moveBy(x: 40, y: 60, duration: 0.25)
+            jumpUp.timingMode = .easeOut
+            let jumpDown = SKAction.moveBy(x: 40, y: -60, duration: 0.2)
+            jumpDown.timingMode = .easeIn
+
+            // Continue running to exit
+            let runOff = SKAction.moveTo(x: endX, duration: config.crossDuration * 0.3)
+            runOff.timingMode = .easeOut
+
+            sprite.run(SKAction.sequence([
+                runToJump,
+                jumpUp,
+                jumpDown,
+                runOff,
+                SKAction.removeFromParent(),
+                SKAction.run { [weak self] in
+                    self?.isAnimating = false
+                }
+            ]))
+        } else {
+            // Simple cross for other weather types
+            let move = SKAction.moveTo(x: endX, duration: config.crossDuration)
+            move.timingMode = .easeInEaseOut
+
+            sprite.run(SKAction.sequence([
+                move,
+                SKAction.removeFromParent(),
+                SKAction.run { [weak self] in
+                    self?.isAnimating = false
+                }
+            ]))
+        }
     }
 
     // MARK: - Sprite Sheet Loading
@@ -76,13 +125,11 @@ class CharacterAnimator {
         let imgWidth = image.size.width
         let imgHeight = image.size.height
 
-        // Detect layout: if wider than tall, assume horizontal strip;
-        // if roughly square or taller, assume grid (use top row)
+        // Detect layout: if wider than tall, assume horizontal strip
         let aspect = imgWidth / imgHeight
         let isHorizontalStrip = aspect > 2.0
 
         if isHorizontalStrip {
-            // Horizontal strip: divide into frameCount equal columns
             let frameWidth = 1.0 / CGFloat(frameCount)
             var textures: [SKTexture] = []
             for i in 0..<frameCount {
@@ -91,16 +138,13 @@ class CharacterAnimator {
             }
             return textures
         } else {
-            // Grid layout (DALL-E often produces 2 rows): use top row
-            // Estimate columns from aspect ratio
+            // Grid layout: use top row
             let cols = max(frameCount, Int(round(aspect * 2)))
             let rows = 2
             let frameW = 1.0 / CGFloat(cols)
             let frameH = 1.0 / CGFloat(rows)
             var textures: [SKTexture] = []
             for i in 0..<min(frameCount, cols) {
-                // Top row: y starts at 0 in SpriteKit texture coords (bottom-left origin)
-                // But SKTexture rect y=0 is top, so top row is y=0
                 let rect = CGRect(x: CGFloat(i) * frameW, y: 0, width: frameW, height: frameH)
                 textures.append(SKTexture(rect: rect, in: texture))
             }
