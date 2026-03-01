@@ -6,14 +6,17 @@ public struct WeatherView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = WeatherViewModel()
     @State private var showSettings = false
+    @State private var scene: WeatherScene?
 
     public init() {}
 
     public var body: some View {
         ZStack {
-            // SpriteKit scene
-            SpriteView(scene: makeScene(), options: [.allowsTransparency])
-                .ignoresSafeArea()
+            // SpriteKit scene — created once
+            if let scene = scene {
+                SpriteView(scene: scene, options: [.allowsTransparency])
+                    .ignoresSafeArea()
+            }
 
             // Invisible touch overlay — captures scribbling
             Color.clear
@@ -59,22 +62,23 @@ public struct WeatherView: View {
                 Spacer()
             }
         }
-        .onAppear { viewModel.onAppear() }
+        .onAppear {
+            if scene == nil {
+                let s = WeatherScene()
+                s.viewModel = viewModel
+                s.audioManager = WeatherAudioManager()
+                s.size = UIScreen.main.bounds.size
+                s.scaleMode = .resizeFill
+                scene = s
+            }
+            viewModel.onAppear()
+        }
         .onDisappear { viewModel.onDisappear() }
         .sheet(isPresented: $showSettings) {
             SettingsSheet(viewModel: viewModel)
                 .weatherSheetDetents()
                 .weatherDragIndicator()
         }
-    }
-
-    private func makeScene() -> WeatherScene {
-        let scene = WeatherScene()
-        scene.viewModel = viewModel
-        scene.audioManager = WeatherAudioManager()
-        scene.size = UIScreen.main.bounds.size
-        scene.scaleMode = .resizeFill
-        return scene
     }
 }
 
