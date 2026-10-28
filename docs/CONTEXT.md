@@ -40,8 +40,6 @@ coloringApp/
 │       ├── WeatherModels.swift     — WeatherType enum, thresholds, configs
 │       └── Resources/              — DALL-E backgrounds, Pixabay/CC0 audio assets
 └── docs/
-    ├── feedback/
-    │   └── wife_feedback_02_24_2026.rtf  — text feedback (all 11 items addressed)
     └── plans/
         ├── 2026-02-25-feedback-round-2-design.md  — executed ✅
         ├── 2026-02-25-kid-mode-ux-round3.md       — partially executed (crayon box selector reverted, pending redesign)

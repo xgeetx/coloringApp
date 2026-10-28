@@ -21,9 +21,9 @@ apps for drawing, spelling and letter tracing. SwiftUI, iPad only, iOS 15+.
 
 ## Built around real feedback
 
-The first version went to my wife for a test run. Her notes, in
-`docs/feedback/`, came back blunt: no default stamp, the eraser is in the wrong
-place, the size slider is at the bottom, the backgrounds look dumb. Each round
+The first version went to my wife for a test run. Her notes came back blunt: no
+default stamp, the eraser is in the wrong place, the size slider is at the
+bottom, the backgrounds look dumb. Each round
 became a design doc and a plan in `docs/plans/`, and the app was rebuilt to
 match. All 11 items from the first round are done.
 
